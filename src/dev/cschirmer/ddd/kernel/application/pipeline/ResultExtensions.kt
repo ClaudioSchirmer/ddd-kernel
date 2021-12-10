@@ -23,3 +23,22 @@ inline fun <reified TResult> Result<TResult>.ifException(callback: Throwable.() 
 inline fun <reified TResult> List<Result<TResult>>.runWithFirst(run: Result<TResult>.() -> Unit) {
     first().run()
 }
+
+inline fun <reified TResult> List<Result<TResult>>.runWithFirst(noinline ifSuccess: (TResult.() -> Unit)?, noinline ifFailure: (List<NotificationContextDTO>.() -> Unit)?, noinline ifException: (Throwable.() -> Unit)?) {
+    val first = first()
+    when {
+        first is Result.Success && ifSuccess != null -> first.value.ifSuccess()
+        first is Result.Failure && ifFailure != null -> first.notificationContext.ifFailure()
+        first is Result.Exception && ifException != null -> first.exception.ifException()
+    }
+}
+
+inline fun <reified TResult> List<Result<TResult>>.forEach(noinline ifSuccess: (TResult.() -> Unit)?, noinline ifFailure: (List<NotificationContextDTO>.() -> Unit)?, noinline ifException: (Throwable.() -> Unit)?) {
+    forEach {
+        when {
+            it is Result.Success && ifSuccess != null -> it.value.ifSuccess()
+            it is Result.Failure && ifFailure != null -> it.notificationContext.ifFailure()
+            it is Result.Exception && ifException != null -> it.exception.ifException()
+        }
+    }
+}
