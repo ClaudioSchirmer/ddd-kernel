@@ -1,6 +1,6 @@
 package dev.cschirmer.ddd.kernel.web.exception
 
-open class UIException : Throwable {
+open class WebException : Throwable {
     constructor() : super()
 
     constructor(message: String?) : super(message)
