@@ -24,13 +24,11 @@ inline fun <reified TResult> List<Result<TResult>>.runWithFirst(run: Result<TRes
     first().run()
 }
 
-inline fun <reified TResult, TReturn> List<Result<TResult>>.runWithFirst(noinline ifSuccess: (TResult.() -> TReturn)?, noinline ifFailure: (List<NotificationContextDTO>.() -> TReturn)?, noinline ifException: (Throwable.() -> TReturn)?) : TReturn {
-    val first = first()
-    return when {
-        first is Result.Success && ifSuccess != null -> first.value.ifSuccess()
-        first is Result.Failure && ifFailure != null -> first.notificationContext.ifFailure()
-        first is Result.Exception && ifException != null -> first.exception.ifException()
-        else -> throw Throwable("runWithFirst has been incorrectly configured!")
+inline fun <reified TResult, TReturn> List<Result<TResult>>.runWithFirst(ifSuccess: (TResult.() -> TReturn), ifFailure: (List<NotificationContextDTO>.() -> TReturn), ifException: (Throwable.() -> TReturn)) : TReturn {
+    return when(val first = first()) {
+        is Result.Success -> first.value.ifSuccess()
+        is Result.Failure -> first.notificationContext.ifFailure()
+        is Result.Exception -> first.exception.ifException()
     }
 }
 

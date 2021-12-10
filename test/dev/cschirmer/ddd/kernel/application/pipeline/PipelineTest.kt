@@ -91,8 +91,8 @@ class PipelineTest {
                 assertNotNull(this, "Deveria executar uma exeção")
                 println(this)
             }
-
         }
+
         pipeline.dispatch(ThrowableCommand()).forEach { response ->
             response.run {
                 ifSuccess {
