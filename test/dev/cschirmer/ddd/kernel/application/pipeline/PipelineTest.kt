@@ -39,6 +39,31 @@ class PipelineTest {
         pipeline.registerCommandHandler(ThrowableCommandHandler())
 
         //command
+        pipeline.dispatch(XYZCommand("VALORENVIO")).runWithFirst(
+            ifSuccess = {
+                println(this)
+                assertEquals("VALORENVIO", this, "Valor recebido deveria ser igual ao enviado.")
+            },
+            ifFailure = {
+                println(this)
+            },
+            ifException = {
+                println(this)
+            }
+        )
+        pipeline.dispatch(XYZCommand("VALORENVIO")).forEach(
+            ifSuccess = {
+                println(this)
+                assertEquals("VALORENVIO", this, "Valor recebido deveria ser igual ao enviado.")
+            },
+            ifFailure = {
+                println(this)
+            },
+            ifException = {
+                println(this)
+            }
+        )
+
         pipeline.dispatch(XYZCommand("VALORENVIO")).forEach { response ->
             response.run {
                 ifSuccess {
@@ -55,6 +80,19 @@ class PipelineTest {
         }
 
         //throwable
+        pipeline.dispatch(ThrowableCommand()).runWithFirst {
+            ifSuccess {
+                println(this)
+            }
+            ifFailure {
+                println(this)
+            }
+            ifException {
+                assertNotNull(this, "Deveria executar uma exeção")
+                println(this)
+            }
+
+        }
         pipeline.dispatch(ThrowableCommand()).forEach { response ->
             response.run {
                 ifSuccess {
