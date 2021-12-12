@@ -39,27 +39,27 @@ class PipelineTest {
         pipeline.registerCommandHandler(ThrowableCommandHandler())
 
         //command
-        pipeline.dispatch(XYZCommand("VALORENVIO")).runWithFirst(
-            ifSuccess = {
+        pipeline.dispatch(XYZCommand("VALORENVIO")).whenFirst(
+            success = {
                 println(this)
                 assertEquals("VALORENVIO", this, "Valor recebido deveria ser igual ao enviado.")
             },
-            ifFailure = {
+            failure = {
                 println(this)
             },
-            ifException = {
+            exception = {
                 println(this)
             }
         )
         pipeline.dispatch(XYZCommand("VALORENVIO")).forEach(
-            ifSuccess = {
+            success = {
                 println(this)
                 assertEquals("VALORENVIO", this, "Valor recebido deveria ser igual ao enviado.")
             },
-            ifFailure = {
+            failure = {
                 println(this)
             },
-            ifException = {
+            exception = {
                 println(this)
             }
         )
