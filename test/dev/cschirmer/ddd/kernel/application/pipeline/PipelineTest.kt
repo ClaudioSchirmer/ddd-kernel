@@ -63,7 +63,7 @@ class PipelineTest {
             ifFailure {
                 ""
             }
-        }
+        }!!
         println(s)
         assertEquals("getOrThrow", s, "Valor recebido deveria ser igual ao enviado.")
         pipeline.dispatch(XYZCommand("forEachResult")).forEachResult {
@@ -113,7 +113,7 @@ class PipelineTest {
             ifSuccess {
                 this
             }
-        }
+        }!!
         println(y)
     }
 }
