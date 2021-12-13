@@ -20,7 +20,11 @@ class PipelineTest {
         )
     }
 
-    class XYZCommandHandler : Handler<String, XYZCommand> {
+    class XYZCommandHandlerA : Handler<String, XYZCommand> {
+        override fun invoke(request: XYZCommand): String = request.entrada
+    }
+
+    class XYZCommandHandlerB : Handler<String, XYZCommand> {
         override fun invoke(request: XYZCommand): String = request.entrada
     }
 
@@ -35,52 +39,52 @@ class PipelineTest {
         val pipeline = Pipeline()
         //register
         pipeline.registerQueryHandler(GetPersonByIdQueryHandler())
-        pipeline.registerCommandHandler(XYZCommandHandler())
+        pipeline.registerCommandHandler(XYZCommandHandlerA())
+        pipeline.registerCommandHandler(XYZCommandHandlerB())
         pipeline.registerCommandHandler(ThrowableCommandHandler())
 
         //command
-        pipeline.dispatch(XYZCommand("VALORENVIO")).whenFirst(
-            success = {
+        pipeline.dispatch(XYZCommand("runWithFirst")).withFirstResult {
+            ifSuccess {
                 println(this)
-                assertEquals("VALORENVIO", this, "Valor recebido deveria ser igual ao enviado.")
-            },
-            failure = {
-                println(this)
-            },
-            exception = {
+                assertEquals("runWithFirst", this, "Valor recebido deveria ser igual ao enviado.")
+            }
+            ifFailure {
                 println(this)
             }
-        )
-        pipeline.dispatch(XYZCommand("VALORENVIO")).forEach(
-            success = {
+            ifException {
                 println(this)
-                assertEquals("VALORENVIO", this, "Valor recebido deveria ser igual ao enviado.")
-            },
-            failure = {
-                println(this)
-            },
-            exception = {
-                println(this)
-            }
-        )
-
-        pipeline.dispatch(XYZCommand("VALORENVIO")).forEach { response ->
-            response.run {
-                ifSuccess {
-                    println(this)
-                    assertEquals("VALORENVIO", this, "Valor recebido deveria ser igual ao enviado.")
-                }
-                ifFailure {
-                    println(this)
-                }
-                ifException {
-                    println(this)
-                }
             }
         }
-
+        val s: String = pipeline.dispatch(XYZCommand("getOrThrow")).getFromFirstResult {
+            ifSuccess {
+                this
+            }
+            ifFailure {
+                ""
+            }
+        }
+        println(s)
+        assertEquals("getOrThrow", s, "Valor recebido deveria ser igual ao enviado.")
+        pipeline.dispatch(XYZCommand("forEachResult")).forEachResult {
+            ifSuccess {
+                println(this)
+                assertEquals("forEachResult", this, "Valor recebido deveria ser igual ao enviado.")
+            }
+            ifFailure {
+                println(this)
+            }
+            ifException {
+                println(this)
+            }
+        }
         //throwable
-        pipeline.dispatch(ThrowableCommand()).runWithFirst {
+        pipeline.dispatch(ThrowableCommand()).withFirstResult {
+            ifSuccess {
+                println(this)
+            }
+        }
+        pipeline.dispatch(ThrowableCommand()).forEachResult {
             ifSuccess {
                 println(this)
             }
@@ -92,24 +96,8 @@ class PipelineTest {
                 println(this)
             }
         }
-
-        pipeline.dispatch(ThrowableCommand()).forEach { response ->
-            response.run {
-                ifSuccess {
-                    println(this)
-                }
-                ifFailure {
-                    println(this)
-                }
-                ifException {
-                    assertNotNull(this, "Deveria executar uma exeção")
-                    println(this)
-                }
-            }
-        }
-
         //query
-        pipeline.dispatch(GetPersonByIdQuery(1)).run {
+        pipeline.dispatch(GetPersonByIdQuery(1)).withResult {
             ifSuccess {
                 println(this)
                 assertEquals(2, count(), "Deveria possuir duas pessoas dentro do resultado")
@@ -121,6 +109,11 @@ class PipelineTest {
                 println(this)
             }
         }
+        val y: MutableList<Person> = pipeline.dispatch(GetPersonByIdQuery(1)).getFromResult {
+            ifSuccess {
+                this
+            }
+        }
+        println(y)
     }
-
 }
