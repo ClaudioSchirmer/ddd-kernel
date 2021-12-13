@@ -2,48 +2,61 @@ package dev.cschirmer.ddd.kernel.application.pipeline
 
 import dev.cschirmer.ddd.kernel.application.notifications.NotificationContextDTO
 
-inline fun <reified TResult> Result<TResult>.ifSuccess(callback: TResult.() -> Unit) {
-    if (this is Result.Success) {
-        value.callback()
+/* ResultOptions Configuration */
+inline fun <reified TResult, TReturn> Result.Actions<TResult, TReturn>.ifSuccess(noinline action: TResult.() -> TReturn) =
+    apply {
+        doIfSuccess = action
+    }
+
+inline fun <reified TResult, TReturn> Result.Actions<TResult, TReturn>.ifFailure(noinline action: List<NotificationContextDTO>.() -> TReturn) =
+    apply {
+        doIfFailure = action
+    }
+
+inline fun <reified TResult, TReturn> Result.Actions<TResult, TReturn>.ifException(noinline action: Throwable.() -> TReturn) =
+    apply {
+        doIfException = action
+    }
+
+/* RESULT */
+inline fun <reified TResult, TReturn> Result<TResult>.getFromResult(options: Result.Actions<TResult, TReturn>.() -> Unit): TReturn {
+    Result.Actions<TResult, TReturn>().apply(options).run {
+        return when (this@getFromResult) {
+            is Result.Success ->
+                (doIfSuccess ?: throw Throwable("Unable to process successful result!")).invoke(this@getFromResult.value)
+            is Result.Failure ->
+                (doIfFailure ?: throw Throwable("Unable to process failure result!")).invoke(this@getFromResult.notificationContext)
+            is Result.Exception ->
+                (doIfException ?: throw Throwable("Unable to process exception result!")).invoke(this@getFromResult.exception)
+        }
     }
 }
 
-inline fun <reified TResult> Result<TResult>.ifFailure(callback: List<NotificationContextDTO>.() -> Unit) {
-    if (this is Result.Failure) {
-        notificationContext.callback()
+inline fun <reified TResult> Result<TResult>.withResult(options: Result.Actions<TResult, Unit>.() -> Unit) {
+    Result.Actions<TResult, Unit>().apply(options).run {
+        when (this@withResult) {
+            is Result.Success -> doIfSuccess?.invoke(this@withResult.value)
+            is Result.Failure -> doIfFailure?.invoke(this@withResult.notificationContext)
+            is Result.Exception -> doIfException?.invoke(this@withResult.exception)
+        }
     }
 }
 
-inline fun <reified TResult> Result<TResult>.ifException(callback: Throwable.() -> Unit) {
-    if (this is Result.Exception) {
-        exception.callback()
-    }
-}
+/* RESULT LIST */
+inline fun <reified TResult, TReturn> List<Result<TResult>>.getFromFirstResult(options: Result.Actions<TResult, TReturn>.() -> Unit) : TReturn =
+    first().getFromResult(options)
 
-inline fun <reified TResult> List<Result<TResult>>.runWithFirst(run: Result<TResult>.() -> Unit) = first().run()
+inline fun <reified TResult> List<Result<TResult>>.withFirstResult(options: Result.Actions<TResult, Unit>.() -> Unit) =
+    first().withResult(options)
 
-inline fun <reified TResult, TReturn> List<Result<TResult>>.whenFirst(
-    success: (TResult.() -> TReturn),
-    failure: (List<NotificationContextDTO>.() -> TReturn),
-    exception: (Throwable.() -> TReturn)
-): TReturn {
-    return when (val first = first()) {
-        is Result.Success -> first.value.success()
-        is Result.Failure -> first.notificationContext.failure()
-        is Result.Exception -> first.exception.exception()
-    }
-}
-
-inline fun <reified TResult> List<Result<TResult>>.forEach(
-    noinline success: (TResult.() -> Unit)? = null,
-    noinline failure: (List<NotificationContextDTO>.() -> Unit)? = null,
-    noinline exception: (Throwable.() -> Unit)? = null
-) {
+inline fun <reified TResult> List<Result<TResult>>.forEachResult(options: Result.Actions<TResult, Unit>.() -> Unit) {
     forEach {
-        when {
-            it is Result.Success && success != null -> it.value.success()
-            it is Result.Failure && failure != null -> it.notificationContext.failure()
-            it is Result.Exception && exception != null -> it.exception.exception()
+        Result.Actions<TResult, Unit>().apply(options).run {
+            when (it) {
+                is Result.Success -> doIfSuccess?.invoke(it.value)
+                is Result.Failure -> doIfFailure?.invoke(it.notificationContext)
+                is Result.Exception -> doIfException?.invoke(it.exception)
+            }
         }
     }
 }
