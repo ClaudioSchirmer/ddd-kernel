@@ -58,7 +58,7 @@ class PipelineTest {
         }
         var s: String = pipeline.dispatch(XYZCommand("getFromFirstResult")).getFromFirstResult({ "Claudio" }) {
             ifSuccess {
-                return
+                this
             }
             ifFailure {
                 ""
@@ -73,6 +73,16 @@ class PipelineTest {
         }
         println("------>$s")
         assertEquals("Claudio", s, "Valor recebido deveria ser igual ao enviado.")
+        pipeline.dispatch(XYZCommand("withFirstIfSuccess")).withFirstIfSuccess {
+            s = this
+        }
+        println("------>$s")
+        assertEquals("withFirstIfSuccess", s, "Valor recebido deveria ser igual ao enviado.")
+        pipeline.dispatch(XYZCommand("first().ifSuccess")).first().ifSuccess {
+            s = this
+        }
+        println("------>$s")
+        assertEquals("first().ifSuccess", s, "Valor recebido deveria ser igual ao enviado.")
         pipeline.dispatch(XYZCommand("forEachResult")).forEachResult {
             ifSuccess {
                 println(this)

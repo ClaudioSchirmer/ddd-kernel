@@ -16,13 +16,13 @@ fun <TResult, TReturn> Result.Actions<TResult, TReturn>.ifException(action: Thro
         doIfException = action
     }
 
+/* RESULT */
 inline fun <TResult> Result<TResult>.ifSuccess(action: TResult.() -> Unit) {
     if (this is Result.Success) {
         this.value.action()
     }
 }
 
-/* RESULT */
 inline fun <TResult, TReturn> Result<TResult>.getFromResult(noinline defaultActionOnFailure: (() -> TReturn)? = null, actions: Result.Actions<TResult, TReturn>.() -> Unit): TReturn =
     runCatching {
         Result.Actions<TResult, TReturn>().apply(actions).run {
@@ -56,6 +56,8 @@ inline fun <TResult, TReturn> List<Result<TResult>>.getFromFirstResult(noinline 
 
 inline fun <TResult> List<Result<TResult>>.withFirstResult(actions: Result.Actions<TResult, Unit>.() -> Unit) =
     first().withResult(actions)
+
+inline fun <TResult> List<Result<TResult>>.withFirstIfSuccess(action: TResult.() -> Unit) = first().ifSuccess(action)
 
 inline fun <TResult> List<Result<TResult>>.forEachResult(actions: Result.Actions<TResult, Unit>.() -> Unit) {
     forEach {
