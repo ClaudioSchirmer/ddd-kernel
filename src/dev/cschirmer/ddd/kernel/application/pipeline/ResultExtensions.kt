@@ -19,15 +19,15 @@ inline fun <reified TResult, TReturn> Result.Actions<TResult, TReturn>.ifExcepti
     }
 
 /* RESULT */
-inline fun <reified TResult, TReturn> Result<TResult>.getFromResult(options: Result.Actions<TResult, TReturn>.() -> Unit): TReturn {
+inline fun <reified TResult, TReturn> Result<TResult>.getFromResult(options: Result.Actions<TResult, TReturn>.() -> Unit): TReturn? {
     Result.Actions<TResult, TReturn>().apply(options).run {
         return when (this@getFromResult) {
             is Result.Success ->
-                (doIfSuccess ?: throw Throwable("Unable to process successful result!")).invoke(this@getFromResult.value)
+                doIfSuccess?.invoke(this@getFromResult.value)
             is Result.Failure ->
-                (doIfFailure ?: throw Throwable("Unable to process failure result!")).invoke(this@getFromResult.notificationContext)
+                doIfFailure?.invoke(this@getFromResult.notificationContext)
             is Result.Exception ->
-                (doIfException ?: throw Throwable("Unable to process exception result!")).invoke(this@getFromResult.exception)
+                doIfException?.invoke(this@getFromResult.exception)
         }
     }
 }
@@ -43,7 +43,7 @@ inline fun <reified TResult> Result<TResult>.withResult(options: Result.Actions<
 }
 
 /* RESULT LIST */
-inline fun <reified TResult, TReturn> List<Result<TResult>>.getFromFirstResult(options: Result.Actions<TResult, TReturn>.() -> Unit) : TReturn =
+inline fun <reified TResult, TReturn> List<Result<TResult>>.getFromFirstResult(options: Result.Actions<TResult, TReturn>.() -> Unit) : TReturn? =
     first().getFromResult(options)
 
 inline fun <reified TResult> List<Result<TResult>>.withFirstResult(options: Result.Actions<TResult, Unit>.() -> Unit) =
