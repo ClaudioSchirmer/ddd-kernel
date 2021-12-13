@@ -56,16 +56,33 @@ class PipelineTest {
                 println(this)
             }
         }
-        val s: String = pipeline.dispatch(XYZCommand("getOrThrow")).getFromFirstResult {
+        var s: String = pipeline.dispatch(XYZCommand("getFromFirstResult")).getFromFirstResult({ "Claudio" }) {
             ifSuccess {
                 this
             }
             ifFailure {
                 ""
             }
-        }!!
-        println(s)
-        assertEquals("getOrThrow", s, "Valor recebido deveria ser igual ao enviado.")
+        }
+        println("------>$s")
+        assertEquals("getFromFirstResult", s, "Valor recebido deveria ser igual ao enviado.")
+        s = pipeline.dispatch(XYZCommand("getFromFirstResult")).getFromFirstResult({ "Claudio" }) {
+            ifFailure {
+                ""
+            }
+        }
+        println("------>$s")
+        assertEquals("Claudio", s, "Valor recebido deveria ser igual ao enviado.")
+        pipeline.dispatch(XYZCommand("withFirstIfSuccess")).withFirstIfSuccess {
+            s = this
+        }
+        println("------>$s")
+        assertEquals("withFirstIfSuccess", s, "Valor recebido deveria ser igual ao enviado.")
+        pipeline.dispatch(XYZCommand("first().ifSuccess")).first().ifSuccess {
+            s = this
+        }
+        println("------>$s")
+        assertEquals("first().ifSuccess", s, "Valor recebido deveria ser igual ao enviado.")
         pipeline.dispatch(XYZCommand("forEachResult")).forEachResult {
             ifSuccess {
                 println(this)
