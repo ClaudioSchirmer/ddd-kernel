@@ -3,6 +3,7 @@ package dev.cschirmer.ddd.kernel.application.pipeline
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class PipelineTest {
 
@@ -21,7 +22,10 @@ class PipelineTest {
     }
 
     class XYZCommandHandlerA : Handler<String, XYZCommand> {
-        override fun invoke(request: XYZCommand): String = request.entrada
+        override fun invoke(request: XYZCommand): String {
+            //throw Throwable("Teste de mensagem de erro")
+            return request.entrada
+        }
     }
 
     class XYZCommandHandlerB : Handler<String, XYZCommand> {
@@ -44,18 +48,11 @@ class PipelineTest {
         pipeline.registerCommandHandler(ThrowableCommandHandler())
 
         //command
-        pipeline.dispatch(XYZCommand("runWithFirst")).withFirstResult {
-            ifSuccess {
+        pipeline.dispatch(XYZCommand("runWithFirst"))
+            .withFirstIfSuccess({ assertTrue(false, "Deveria ter dado sucesso") }) {
                 println(this)
                 assertEquals("runWithFirst", this, "Valor recebido deveria ser igual ao enviado.")
             }
-            ifFailure {
-                println(this)
-            }
-            ifException {
-                println(this)
-            }
-        }
         var s: String = pipeline.dispatch(XYZCommand("getFromFirstResult")).getFromFirstResult({ "Claudio" }) {
             ifSuccess {
                 this
@@ -79,7 +76,7 @@ class PipelineTest {
         println("------>$s")
         assertEquals("withFirstIfSuccess", s, "Valor recebido deveria ser igual ao enviado.")
         pipeline.dispatch(XYZCommand("first().ifSuccess")).first().ifSuccess {
-            s = this
+            return
         }
         println("------>$s")
         assertEquals("first().ifSuccess", s, "Valor recebido deveria ser igual ao enviado.")
@@ -130,7 +127,7 @@ class PipelineTest {
             ifSuccess {
                 this
             }
-        }!!
+        }
         println(y)
     }
 }
