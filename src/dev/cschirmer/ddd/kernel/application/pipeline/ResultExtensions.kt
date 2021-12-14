@@ -4,8 +4,8 @@ import dev.cschirmer.ddd.kernel.application.notifications.NotificationContextDTO
 
 /* ResultOptions Configuration */
 fun <TResult, TReturn> Result.Actions<TResult, TReturn>.ifSuccess(action: TResult.() -> TReturn) = apply {
-        doIfSuccess = action
-    }
+    doIfSuccess = action
+}
 
 fun <TResult, TReturn> Result.Actions<TResult, TReturn>.ifFailure(action: List<NotificationContextDTO>.() -> TReturn) =
     apply {
@@ -13,17 +13,22 @@ fun <TResult, TReturn> Result.Actions<TResult, TReturn>.ifFailure(action: List<N
     }
 
 fun <TResult, TReturn> Result.Actions<TResult, TReturn>.ifException(action: Throwable.() -> TReturn) = apply {
-        doIfException = action
-    }
+    doIfException = action
+}
 
 /* RESULT */
-inline fun <TResult> Result<TResult>.ifSuccess(action: TResult.() -> Unit) {
+inline fun <TResult> Result<TResult>.ifSuccess(defaultActionOtherwise: (() -> Unit) = {}, action: TResult.() -> Unit) {
     if (this is Result.Success) {
         this.value.action()
+    } else {
+        defaultActionOtherwise.invoke()
     }
 }
 
-inline fun <TResult, TReturn> Result<TResult>.getFromResult(noinline defaultActionOnFailure: (() -> TReturn)? = null, actions: Result.Actions<TResult, TReturn>.() -> Unit): TReturn =
+inline fun <TResult, TReturn> Result<TResult>.getFromResult(
+    noinline defaultActionOnFailure: (() -> TReturn)? = null,
+    actions: Result.Actions<TResult, TReturn>.() -> Unit
+): TReturn =
     runCatching {
         Result.Actions<TResult, TReturn>().apply(actions).run {
             when (this@getFromResult) {
@@ -51,13 +56,19 @@ inline fun <TResult> Result<TResult>.withResult(actions: Result.Actions<TResult,
 }
 
 /* RESULT LIST */
-inline fun <TResult, TReturn> List<Result<TResult>>.getFromFirstResult(noinline defaultActionOnFailure: (() -> TReturn)? = null, actions: Result.Actions<TResult, TReturn>.() -> Unit) : TReturn =
+inline fun <TResult, TReturn> List<Result<TResult>>.getFromFirstResult(
+    noinline defaultActionOnFailure: (() -> TReturn)? = null,
+    actions: Result.Actions<TResult, TReturn>.() -> Unit
+): TReturn =
     first().getFromResult(defaultActionOnFailure, actions)
 
 inline fun <TResult> List<Result<TResult>>.withFirstResult(actions: Result.Actions<TResult, Unit>.() -> Unit) =
     first().withResult(actions)
 
-inline fun <TResult> List<Result<TResult>>.withFirstIfSuccess(action: TResult.() -> Unit) = first().ifSuccess(action)
+inline fun <TResult> List<Result<TResult>>.withFirstIfSuccess(
+    defaultActionOtherwise: (() -> Unit) = {},
+    action: TResult.() -> Unit
+) = first().ifSuccess(defaultActionOtherwise, action)
 
 inline fun <TResult> List<Result<TResult>>.forEachResult(actions: Result.Actions<TResult, Unit>.() -> Unit) {
     forEach {
