@@ -3,6 +3,7 @@ package dev.cschirmer.ddd.kernel.application.translation
 import dev.cschirmer.ddd.kernel.application.config.ApplicationConfig
 import dev.cschirmer.ddd.kernel.application.config.Language
 import java.io.File
+import java.net.URI
 
 object Translator {
     private val translations: MutableMap<Language, MutableMap<String, String>> = mutableMapOf()
@@ -33,7 +34,8 @@ object Translator {
     private fun readTranslationsFromFile() {
         val mapTranslations = translations.putIfAbsent(ApplicationConfig.language(), mutableMapOf())
             ?: translations[ApplicationConfig.language()]!!
-        this::class.java.classLoader.getResource("${ApplicationConfig.translationsFolder}/${ApplicationConfig.language()}.properties")?.file?.let { file ->
+        val uri = URI("${ApplicationConfig.translationsFolder}/${ApplicationConfig.language()}.properties")
+        this::class.java.classLoader.getResource(uri.path)?.file?.let { file ->
             File(file).useLines { lines ->
                 lines.forEach { line ->
                     if (!line.contains("#")) {
