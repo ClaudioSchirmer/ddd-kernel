@@ -15,7 +15,6 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
     protected inline fun <reified TAggregateEntityValueObject> getAggregateItems(): List<AggregateItem<TAggregateEntityValueObject>>
     where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
         val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
-        println("getting-$itemKey")
         return (aggregateItems.putIfAbsent(itemKey, mutableListOf())
             ?: aggregateItems[itemKey]!!) as List<AggregateItem<TAggregateEntityValueObject>>
     }
