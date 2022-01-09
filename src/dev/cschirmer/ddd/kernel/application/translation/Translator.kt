@@ -34,8 +34,7 @@ object Translator {
     private fun readTranslationsFromFile() {
         val mapTranslations = translations.putIfAbsent(ApplicationConfig.language(), mutableMapOf())
             ?: translations[ApplicationConfig.language()]!!
-        val uri = URI("${ApplicationConfig.translationsFolder}/${ApplicationConfig.language()}.properties")
-        this::class.java.classLoader.getResource(uri.path)?.file?.let { file ->
+        this::class.java.classLoader.getResource("${ApplicationConfig.translationsFolder}/${ApplicationConfig.language()}.properties")?.toURI()?.path?.let { file ->
             File(file).useLines { lines ->
                 lines.forEach { line ->
                     if (!line.contains("#")) {
