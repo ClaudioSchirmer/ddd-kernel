@@ -40,12 +40,13 @@ java {
 }
 
 group = "dev.cschirmer"
-version = "2.3.3"
+version = "3.0.0"
 
 sourceSets.main {
 	withConvention(KotlinSourceSet::class) {
 		kotlin.srcDirs("src")
 	}
+	resources.srcDirs("resources")
 }
 
 sourceSets.test {
@@ -68,6 +69,9 @@ repositories {
 }
 
 dependencies {
+	//Coroutines
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinVersion")
+
 	//Log
 	implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
