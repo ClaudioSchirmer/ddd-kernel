@@ -1,6 +1,6 @@
-package dev.cschirmer.ddd.kernel.application.config
+package dev.cschirmer.ddd.kernel.application.configuration
 
-object ApplicationConfig {
+object Application {
 	var language: (() -> Language) = { Language.PT_BR }
 	var translationsFolder: String = "translations"
 }

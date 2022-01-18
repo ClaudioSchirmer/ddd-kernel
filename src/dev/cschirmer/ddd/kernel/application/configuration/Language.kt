@@ -1,4 +1,4 @@
-package dev.cschirmer.ddd.kernel.application.config
+package dev.cschirmer.ddd.kernel.application.configuration
 
 import dev.cschirmer.ddd.kernel.domain.notifications.Notification
 import dev.cschirmer.ddd.kernel.domain.valueobjects.EnumValueObject
