@@ -1,39 +1,45 @@
 package dev.cschirmer.ddd.kernel.application.pipeline
 
+import dev.cschirmer.ddd.kernel.application.configuration.Context
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PipelineTest {
 
+    class MyContext(id: UUID, val abacaxi: String) : Context(id)
     data class Person(val id: Int, val name: String)
-
     data class GetPersonByIdQuery(val id: Int) : Query<MutableList<Person>>
     data class XYZCommand(val entrada: String) : Command<String>
     class ThrowableCommand : Command<Unit>
 
-    class GetPersonByIdQueryHandler :
-            Handler<MutableList<Person>, GetPersonByIdQuery> {
+    class GetPersonByIdQueryHandler : Handler<MutableList<Person>, GetPersonByIdQuery>() {
         override suspend fun invoke(request: GetPersonByIdQuery): MutableList<Person> = mutableListOf(
                 Person(1, "Claudio"),
                 Person(2, "Teste")
         )
     }
 
-    class XYZCommandHandlerA : Handler<String, XYZCommand> {
+    class XYZCommandHandlerA : Handler<String, XYZCommand>() {
         override suspend fun invoke(request: XYZCommand): String {
+            if (context is MyContext) {
+                println((context as MyContext).abacaxi)
+            } else {
+                println(context.id)
+            }
             //throw Throwable("Teste de mensagem de erro")
             return request.entrada
         }
     }
 
-    class XYZCommandHandlerB : Handler<String, XYZCommand> {
+    class XYZCommandHandlerB : Handler<String, XYZCommand>() {
         override suspend fun invoke(request: XYZCommand): String = request.entrada
     }
 
-    class ThrowableCommandHandler : Handler<Unit, ThrowableCommand> {
+    class ThrowableCommandHandler : Handler<Unit, ThrowableCommand>() {
         override suspend fun invoke(request: ThrowableCommand) {
             throw Throwable("Teste de mensagem de erro")
         }
@@ -42,7 +48,7 @@ class PipelineTest {
     @Test
     fun pipelineTest() {
 
-        val pipeline = Pipeline()
+        val pipeline = Pipeline(MyContext(id = UUID.randomUUID(), abacaxi = "foi"))
         //register
         pipeline.registerQueryHandler(GetPersonByIdQueryHandler())
         pipeline.registerCommandHandler(XYZCommandHandlerA())
