@@ -40,7 +40,7 @@ java {
 }
 
 group = "dev.cschirmer"
-version = "3.0.0"
+version = "3.1.0"
 
 sourceSets.main {
 	withConvention(KotlinSourceSet::class) {

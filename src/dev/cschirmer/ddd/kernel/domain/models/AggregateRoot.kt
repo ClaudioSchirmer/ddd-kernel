@@ -96,7 +96,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
         }
     }
 
-    protected inline fun <reified TAggregateEntityValueObject> removeAggregateItem(item: TAggregateEntityValueObject?)
+    protected suspend inline fun <reified TAggregateEntityValueObject> removeAggregateItem(item: TAggregateEntityValueObject?)
     where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
         if (item == null) {
             addNotificationMessage(
@@ -121,7 +121,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
         }
     }
 
-    protected inline fun <reified TAggregateEntityValueObject> clearAggregateItems()
+    protected suspend inline fun <reified TAggregateEntityValueObject> clearAggregateItems()
     where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
         val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
         (aggregateItems.putIfAbsent(itemKey, mutableListOf()) ?: aggregateItems[itemKey]!!).forEach {
