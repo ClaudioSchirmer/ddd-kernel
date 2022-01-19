@@ -1,5 +1,14 @@
 package dev.cschirmer.ddd.kernel.application.pipeline
 
-interface Handler<TResult, TRequest: Request<TResult>> {
-	operator fun invoke(request: TRequest) : TResult
+import dev.cschirmer.ddd.kernel.application.configuration.Context
+
+abstract class Handler<TResult, TRequest: Request<TResult>> {
+	protected lateinit var context: Context
+	private set
+	abstract suspend fun invoke(request: TRequest) : TResult
+	fun setContext(context: Context) {
+		if (!this::context.isInitialized) {
+			this.context = context
+		}
+	}
 }

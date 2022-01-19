@@ -27,7 +27,7 @@ data class Id(
 		}
 	}
 
-	override fun isValid(fieldName: String?, notificationContext: NotificationContext?): Boolean = try {
+	override suspend fun isValid(fieldName: String?, notificationContext: NotificationContext?): Boolean = try {
 		UUID.fromString(value)
 		true
 	} catch (e: Exception) {

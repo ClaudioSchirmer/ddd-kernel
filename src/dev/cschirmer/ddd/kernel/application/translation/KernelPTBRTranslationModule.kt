@@ -1,6 +1,6 @@
 package dev.cschirmer.ddd.kernel.application.translation
 
-import dev.cschirmer.ddd.kernel.application.config.Language
+import dev.cschirmer.ddd.kernel.application.configuration.Language
 
 object KernelPTBRTranslationModule : TranslateModule {
     override val language: Language = Language.PT_BR

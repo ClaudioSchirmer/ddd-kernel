@@ -19,7 +19,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
             ?: aggregateItems[itemKey]!!) as List<AggregateItem<TAggregateEntityValueObject>>
     }
 
-    protected inline fun <reified TAggregateEntityValueObject> aggregateConstructor(items: List<TAggregateEntityValueObject>?)
+    protected suspend inline fun <reified TAggregateEntityValueObject> aggregateConstructor(items: List<TAggregateEntityValueObject>?)
     where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
         items?.forEach { item ->
             if (isAggregateItemValid(item)) {
@@ -36,7 +36,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
         }
     }
 
-    protected inline fun <reified TAggregateEntityValueObject> addAggregateItem(item: TAggregateEntityValueObject?)
+    protected suspend inline fun <reified TAggregateEntityValueObject> addAggregateItem(item: TAggregateEntityValueObject?)
     where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
         if (isAggregateItemValid(item)) {
             val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
@@ -70,7 +70,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
         }
     }
 
-    protected inline fun <reified TAggregateEntityValueObject> changeAggregateItem(
+    protected suspend inline fun <reified TAggregateEntityValueObject> changeAggregateItem(
         item: TAggregateEntityValueObject?,
         changes: TAggregateEntityValueObject.() -> Unit
     ) where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
@@ -96,7 +96,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
         }
     }
 
-    protected inline fun <reified TAggregateEntityValueObject> removeAggregateItem(item: TAggregateEntityValueObject?)
+    protected suspend inline fun <reified TAggregateEntityValueObject> removeAggregateItem(item: TAggregateEntityValueObject?)
     where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
         if (item == null) {
             addNotificationMessage(
@@ -121,7 +121,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
         }
     }
 
-    protected inline fun <reified TAggregateEntityValueObject> clearAggregateItems()
+    protected suspend inline fun <reified TAggregateEntityValueObject> clearAggregateItems()
     where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
         val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
         (aggregateItems.putIfAbsent(itemKey, mutableListOf()) ?: aggregateItems[itemKey]!!).forEach {
@@ -129,7 +129,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
         }
     }
 
-    protected inline fun <reified TAggregateEntityValueObject> isAggregateItemValid(item: TAggregateEntityValueObject?): Boolean
+    protected suspend inline fun <reified TAggregateEntityValueObject> isAggregateItemValid(item: TAggregateEntityValueObject?): Boolean
     where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> =
         when {
             item == null -> {
@@ -168,25 +168,25 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
     protected var validateAggregateEntityValueObjects: (() -> MutableList<Pair<String, AggregateEntityValueObject<TEntity>>>) =
         { mutableListOf() }
 
-    override fun getUpdatable(service: Service<TEntity>?): ValidEntity.Updatable<TEntity> {
+    override suspend fun getUpdatable(service: Service<TEntity>?): ValidEntity.Updatable<TEntity> {
         this.service = service
         runValidateAggregateEntityValueObjects()
         return super.getUpdatable(service)
     }
 
-    override fun getDeletable(service: Service<TEntity>?): ValidEntity.Deletable<TEntity> {
+    override suspend fun getDeletable(service: Service<TEntity>?): ValidEntity.Deletable<TEntity> {
         this.service = service
         runValidateAggregateEntityValueObjects()
         return super.getDeletable(service)
     }
 
-    override fun getInsertable(service: Service<TEntity>?): ValidEntity.Insertable<TEntity> {
+    override suspend fun getInsertable(service: Service<TEntity>?): ValidEntity.Insertable<TEntity> {
         this.service = service
         runValidateAggregateEntityValueObjects()
         return super.getInsertable(service)
     }
 
-    private fun runValidateAggregateEntityValueObjects() {
+    private suspend fun runValidateAggregateEntityValueObjects() {
         validateAggregateEntityValueObjects().forEach {
             it.second.isValid(service, transactionMode, it.first, notificationContext)
         }

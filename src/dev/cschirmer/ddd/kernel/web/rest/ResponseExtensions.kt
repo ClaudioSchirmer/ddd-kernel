@@ -1,6 +1,9 @@
 package dev.cschirmer.ddd.kernel.web.rest
 
 import dev.cschirmer.ddd.kernel.application.notifications.NotificationContextDTO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 
 fun List<NotificationContextDTO>.toResponse(
@@ -19,13 +22,15 @@ fun List<NotificationContextDTO>.toResponse(
         )
     })
 
-fun Throwable.toResponse(httpStatus: Int, httpDescription: String): Response {
-    LoggerFactory.getLogger(this::class.java).error(this.message)
-    return Response(status = httpStatus, description = httpDescription)
+suspend fun Throwable.toResponse(httpStatus: Int, httpDescription: String): Response = coroutineScope {
+    launch(Job()) {
+        LoggerFactory.getLogger(this::class.java).error(this@toResponse.message)
+    }
+    return@coroutineScope Response(status = httpStatus, description = httpDescription)
 }
 
-fun Throwable.toBadRequestResponse() = this.toResponse(400, "Bad Request")
+suspend fun Throwable.toBadRequestResponse() = this.toResponse(400, "Bad Request")
 
-fun Throwable.toNotFoundResponse() = this.toResponse(404, "Not Found")
+suspend fun Throwable.toNotFoundResponse() = this.toResponse(404, "Not Found")
 
-fun Throwable.toInternalServerErrorResponse() = this.toResponse(500, "Internal Server Error")
+suspend fun Throwable.toInternalServerErrorResponse() = this.toResponse(500, "Internal Server Error")

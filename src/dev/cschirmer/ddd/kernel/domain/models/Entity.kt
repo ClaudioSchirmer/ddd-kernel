@@ -22,7 +22,7 @@ abstract class Entity<TEntity : Entity<TEntity>> {
     protected var insertRules: (() -> Unit) = {}
     protected var deleteRules: (() -> Unit) = {}
 
-    fun isValid(
+    suspend fun isValid(
         transactionMode: TransactionMode,
         service: Service<TEntity>? = null,
         _notificationContext: NotificationContext
@@ -57,7 +57,7 @@ abstract class Entity<TEntity : Entity<TEntity>> {
         }
     }
 
-    protected open fun getInsertable(service: Service<TEntity>? = null): ValidEntity.Insertable<TEntity> {
+    protected open suspend fun getInsertable(service: Service<TEntity>? = null): ValidEntity.Insertable<TEntity> {
         this.service = service
         transactionMode = TransactionMode.INSERT
         insertOrUpdateRules()
@@ -78,7 +78,7 @@ abstract class Entity<TEntity : Entity<TEntity>> {
         return ValidEntity.Insertable(this as TEntity)
     }
 
-    protected open fun getUpdatable(service: Service<TEntity>? = null): ValidEntity.Updatable<TEntity> {
+    protected open suspend fun getUpdatable(service: Service<TEntity>? = null): ValidEntity.Updatable<TEntity> {
         this.service = service
         transactionMode = TransactionMode.UPDATE
         insertOrUpdateRules()
@@ -96,7 +96,7 @@ abstract class Entity<TEntity : Entity<TEntity>> {
         return ValidEntity.Updatable(this as TEntity)
     }
 
-    protected open fun getDeletable(service: Service<TEntity>? = null): ValidEntity.Deletable<TEntity> {
+    protected open suspend fun getDeletable(service: Service<TEntity>? = null): ValidEntity.Deletable<TEntity> {
         this.service = service
         transactionMode = TransactionMode.DELETE
         deleteRules()
@@ -130,7 +130,7 @@ abstract class Entity<TEntity : Entity<TEntity>> {
         }
     }
 
-    private fun runValidateValueObjects() {
+    private suspend fun runValidateValueObjects() {
         validateValueObjects().forEach {
             it.second.isValid(it.first, notificationContext)
         }

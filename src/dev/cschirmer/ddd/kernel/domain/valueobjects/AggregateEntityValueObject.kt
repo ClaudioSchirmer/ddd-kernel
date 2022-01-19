@@ -5,7 +5,7 @@ import dev.cschirmer.ddd.kernel.domain.models.Service
 import dev.cschirmer.ddd.kernel.domain.notifications.NotificationContext
 
 interface AggregateEntityValueObject<TSuperEntity : Entity<TSuperEntity>> {
-    fun isValid(
+    suspend fun isValid(
         service: Service<TSuperEntity>? = null,
         transactionMode: TransactionMode,
         fieldName: String,

@@ -11,7 +11,7 @@ interface EnumValueObject<TValue : Any> : ValueObject {
 	val value: TValue
 	val description get() = ("${this::class.simpleName.toString()}.$this").getTranslatedMessage()
 
-	override fun isValid(fieldName: String?, notificationContext: NotificationContext?): Boolean =
+	override suspend fun isValid(fieldName: String?, notificationContext: NotificationContext?): Boolean =
 		if (((value is String) && (value == "" || value == "UNKNOWN")) || ((value is Int) && value == 0)) {
 			notificationContext?.addNotification(
 				NotificationMessage(
