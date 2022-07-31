@@ -5,13 +5,14 @@ val repositoryURL: String by project
 val repositoryUser: String by project
 val repositoryPassword: String by project
 val kotlinVersion: String by project
+val kotlinCoroutines: String by project
 val logbackVersion: String by project
 val kodeinVersion: String by project
 
 
 plugins {
 	application
-	kotlin("jvm") version "1.6.0"
+	kotlin("jvm") version "1.7.0"
 	java
 	`maven-publish`
 }
@@ -39,8 +40,8 @@ java {
 	withSourcesJar()
 }
 
-group = "dev.cschirmer"
-version = "3.2.0"
+group = "br.dev.schirmer"
+version = "1.0.0"
 
 sourceSets.main {
 	withConvention(KotlinSourceSet::class) {
@@ -70,7 +71,7 @@ repositories {
 
 dependencies {
 	//Coroutines
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinVersion")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutines")
 
 	//Log
 	implementation("ch.qos.logback:logback-classic:$logbackVersion")
