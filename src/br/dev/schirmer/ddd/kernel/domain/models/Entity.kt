@@ -3,12 +3,13 @@ package br.dev.schirmer.ddd.kernel.domain.models
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
+import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateEntityValueObject
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.TransactionMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.ValueObject
 
 @Suppress("UNCHECKED_CAST")
-abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntity>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>> :
+abstract class Entity<TEntity: Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>> :
     ValidEntity<TEntity> {
     var id: Id? = null
         protected set
@@ -16,6 +17,8 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
     protected val notificationContext = NotificationContext(this::class.simpleName.toString())
     protected var transactionMode: TransactionMode = TransactionMode.DISPLAY
     private var validateValueObjects: MutableList<Pair<String, ValueObject>> =  mutableListOf()
+    private var validateAggregateEntityValueObjects: MutableList<Pair<String, AggregateEntityValueObject<TEntity, TService>>> =
+        mutableListOf()
     private var businessRules: ((service: TService?) -> Unit) = {}
     private var insertOrUpdateRules: ((service: TService?) -> Unit) = {}
     private var updateRules: ((service: TService?) -> Unit) = {}
@@ -25,8 +28,8 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
     open val insertable: Boolean = false
     open val updatable: Boolean = false
     open val deletable: Boolean = false
-    open val insertableValidEntity: ValidEntity.Insertable<TInsertable> = ValidEntity.Insertable(this as TInsertable)
-    open val updatableValidEntity: ValidEntity.Updatable<TUpdatable> = ValidEntity.Updatable(this as TUpdatable)
+    open val insertableValidEntity: ValidEntity.Insertable<TEntity, TInsertable> = ValidEntity.Insertable(this as TInsertable)
+    open val updatableValidEntity: ValidEntity.Updatable<TEntity, TUpdatable> = ValidEntity.Updatable(this as TUpdatable)
 
     suspend fun isValid(
         transactionMode: TransactionMode,
@@ -56,14 +59,16 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
         return _notificationContext.notifications.isNotEmpty()
     }
 
-    suspend fun getInsertable(service: Service<TEntity>? = null): ValidEntity.Insertable<TInsertable> {
+    suspend fun getInsertable(service: Service<TEntity>? = null): ValidEntity.Insertable<TEntity, TInsertable> {
+        startEntity()
         this.service = service
         validateToInsert()
         checkNotifications()
         return insertableValidEntity
     }
 
-    suspend fun getUpdatable(service: Service<TEntity>? = null): ValidEntity.Updatable<TUpdatable> {
+    suspend fun getUpdatable(service: Service<TEntity>? = null): ValidEntity.Updatable<TEntity, TUpdatable> {
+        startEntity()
         this.service = service
         validateToUpdate()
         checkNotifications()
@@ -71,6 +76,7 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
     }
 
     suspend fun getDeletable(service: Service<TEntity>? = null): ValidEntity.Deletable<TEntity> {
+        startEntity()
         this.service = service
         validateToDelete()
         checkNotifications()
@@ -78,6 +84,8 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
     }
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
+    protected fun AggregateEntityValueObject<TEntity, TService>.addToValidate(name: String) =
+        validateAggregateEntityValueObjects.add(Pair(name, this))
 
     protected fun insertRules(function: (service: TService?) -> Unit) {
         insertRules = function
@@ -107,8 +115,9 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
         notificationContextCollection.add(notificationContext)
     }
 
+    protected fun getService() = if( service == null ) null else service as TService
+
     private suspend fun validateToInsert() {
-        startEntity()
         if (!insertable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -124,6 +133,7 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
         insertOrUpdateRules.runWithService()
         businessRules.runWithService()
         runValidateValueObjects()
+        runValidateAggregateEntityValueObjects()
         if (id != null) {
             addNotificationMessage(
                 NotificationMessage(
@@ -137,7 +147,6 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
     }
 
     private suspend fun validateToUpdate() {
-        startEntity()
         if (!updatable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -153,9 +162,11 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
         insertOrUpdateRules.runWithService()
         businessRules.runWithService()
         runValidateValueObjects()
+        runValidateAggregateEntityValueObjects()
         id?.isValid(::id.name, notificationContext)
             ?: addNotificationMessage(
                 NotificationMessage(
+                    fieldName = ::id.name,
                     funName = ::getUpdatable.name,
                     notification = UnableToUpdateWithoutIDNotification()
                 )
@@ -163,7 +174,6 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
     }
 
     private suspend fun validateToDelete() {
-        startEntity()
         if (!deletable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -179,9 +189,11 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
         deleteRules.runWithService()
         businessRules.runWithService()
         runValidateValueObjects()
+        runValidateAggregateEntityValueObjects()
         id?.isValid(::id.name, notificationContext)
             ?: addNotificationMessage(
                 NotificationMessage(
+                    fieldName = ::id.name,
                     funName = ::getDeletable.name,
                     notification = UnableToDeleteWithoutIDNotification()
                 )
@@ -197,19 +209,17 @@ abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntit
         }
     }
 
-    private fun (TService?.() -> Unit).runWithService() {
-        if (service == null) {
-            this(null)
-        } else {
-            this(service as TService)
-        }
-    }
-
-    private fun getService() = if( service == null ) null else service as TService
+    private fun (TService?.() -> Unit).runWithService() = this(getService())
 
     private suspend fun runValidateValueObjects() {
         validateValueObjects.forEach {
             it.second.isValid(it.first, notificationContext)
+        }
+    }
+
+    private suspend fun runValidateAggregateEntityValueObjects() {
+        validateAggregateEntityValueObjects.forEach {
+            it.second.isValid(getService(), transactionMode, it.first, notificationContext)
         }
     }
 
