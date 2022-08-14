@@ -1,5 +1,7 @@
 package br.dev.schirmer.ddd.kernel.domain.models
 
+import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
+import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import kotlinx.coroutines.runBlocking
 import java.util.*
@@ -23,24 +25,27 @@ class ServiceXYZ : Service<XYZ> {
 data class XYZ(
     val x: Id,
     val y: String
-) : Entity<XYZ, ServiceXYZ, XYZ, XYZ.Fields>() {
+) : Entity<XYZ, ServiceXYZ, XYZ.Insertable, XYZ>() {
 
-    class Fields(
-        val y: String
+    class Insertable(
+        val x: Id
     ) : ValidEntity<XYZ>
+
+    override val insertableValidEntity: ValidEntity.Insertable<XYZ, Insertable>
+        get() = ValidEntity.Insertable(Insertable(x))
+
+    override val insertable: Boolean
+        get() = true
 
     override val updatable: Boolean
         get() = true
 
-    override val updatableValidEntity: ValidEntity.Updatable<XYZ, Fields>
-        get() = ValidEntity.Updatable(Fields(y))
-
     init {
-        x.addToValidate(::x.name)
-        id = Id(UUID.randomUUID())
-
         updateRules {
-            it?.execute()
+            id = Id(UUID.randomUUID())
+        }
+        businessRules {
+            x.addToValidate(::x.name)
         }
     }
 }
@@ -48,11 +53,10 @@ data class XYZ(
 fun main() {
     runBlocking {
         runCatching {
-            val insertable = XYZ(Id(UUID.randomUUID()), "Guedes").getUpdatable()
-            println(insertable.entity.y)
+            val insertable = XYZ(Id("asdf"), "Guedes").getUpdatable()
+            println(insertable.entity.x.value)
         }.onFailure {
-            println(it)
-            //(it as DomainNotificationContextException).notificationContext.let(::println)
+            (it as DomainNotificationContextException).notificationContext.let(::println)
         }
     }
 }

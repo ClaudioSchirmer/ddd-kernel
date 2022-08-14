@@ -224,6 +224,8 @@ abstract class Entity<TEntity: Entity<TEntity, TService, TInsertable, TUpdatable
     }
 
     private fun startEntity() {
+        validateValueObjects.clear()
+        validateAggregateEntityValueObjects.clear()
         notificationContext.clearNotifications()
         transactionMode = TransactionMode.DISPLAY
         service = null
