@@ -8,61 +8,121 @@ import br.dev.schirmer.ddd.kernel.domain.valueobjects.TransactionMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.ValueObject
 
 @Suppress("UNCHECKED_CAST")
-abstract class Entity<TEntity : Entity<TEntity>> {
+abstract class Entity<TEntity: Entity<TEntity, *,*,*>, TService : Service<TEntity>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>> :
+    ValidEntity<TEntity> {
     var id: Id? = null
         protected set
     private val notificationContextCollection: MutableList<NotificationContext> = mutableListOf()
     protected val notificationContext = NotificationContext(this::class.simpleName.toString())
-    protected var service: Service<TEntity>? = null
     protected var transactionMode: TransactionMode = TransactionMode.DISPLAY
-    protected var validateValueObjects: (() -> MutableList<Pair<String, ValueObject>>) = { mutableListOf() }
-    protected var businessRules: (() -> Unit) = {}
-    protected var insertOrUpdateRules: (() -> Unit) = {}
-    protected var updateRules: (() -> Unit) = {}
-    protected var insertRules: (() -> Unit) = {}
-    protected var deleteRules: (() -> Unit) = {}
+    private var validateValueObjects: MutableList<Pair<String, ValueObject>> =  mutableListOf()
+    private var businessRules: ((service: TService?) -> Unit) = {}
+    private var insertOrUpdateRules: ((service: TService?) -> Unit) = {}
+    private var updateRules: ((service: TService?) -> Unit) = {}
+    private var insertRules: ((service: TService?) -> Unit) = {}
+    private var deleteRules: ((service: TService?) -> Unit) = {}
+    private var service: Service<TEntity>? = null
+    open val insertable: Boolean = false
+    open val updatable: Boolean = false
+    open val deletable: Boolean = false
+    open val insertableValidEntity: ValidEntity.Insertable<TInsertable> = ValidEntity.Insertable(this as TInsertable)
+    open val updatableValidEntity: ValidEntity.Updatable<TUpdatable> = ValidEntity.Updatable(this as TUpdatable)
 
     suspend fun isValid(
         transactionMode: TransactionMode,
         service: Service<TEntity>? = null,
         _notificationContext: NotificationContext
     ): Boolean {
+        startEntity()
         if (service != null) {
             this.service = service
         }
         when (transactionMode) {
             TransactionMode.INSERT -> {
-                insertOrUpdateRules()
-                insertRules()
+                validateToInsert()
             }
             TransactionMode.UPDATE -> {
-                insertOrUpdateRules()
-                updateRules()
+                validateToUpdate()
             }
             TransactionMode.DELETE -> {
-                deleteRules()
+                validateToDelete()
             }
             else -> {}
         }
-        businessRules()
-        runValidateValueObjects()
         notificationContext.notifications.forEach {
             _notificationContext.addNotification(it)
         }
-        return if (notificationContext.notifications.isNotEmpty()) {
-            notificationContext.clearNotifications()
-            false
-        } else {
-            true
-        }
+        startEntity()
+        return _notificationContext.notifications.isNotEmpty()
     }
 
-    protected open suspend fun getInsertable(service: Service<TEntity>? = null): ValidEntity.Insertable<TEntity> {
+    suspend fun getInsertable(service: Service<TEntity>? = null): ValidEntity.Insertable<TInsertable> {
         this.service = service
+        validateToInsert()
+        checkNotifications()
+        return insertableValidEntity
+    }
+
+    suspend fun getUpdatable(service: Service<TEntity>? = null): ValidEntity.Updatable<TUpdatable> {
+        this.service = service
+        validateToUpdate()
+        checkNotifications()
+        return updatableValidEntity
+    }
+
+    suspend fun getDeletable(service: Service<TEntity>? = null): ValidEntity.Deletable<TEntity> {
+        this.service = service
+        validateToDelete()
+        checkNotifications()
+        return ValidEntity.Deletable(id!!)
+    }
+
+    protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
+
+    protected fun insertRules(function: (service: TService?) -> Unit) {
+        insertRules = function
+    }
+
+    protected fun updateRules(function: (service: TService?) -> Unit) {
+        updateRules = function
+    }
+
+    protected fun insertOrUpdateRules(function: (service: TService?) -> Unit) {
+        insertOrUpdateRules = function
+    }
+
+    protected fun deleteRules(function: (service: TService?) -> Unit) {
+        deleteRules = function
+    }
+
+    protected fun businessRules(function: (service: TService?) -> Unit) {
+        businessRules = function
+    }
+
+    protected fun addNotificationMessage(notificationMessage: NotificationMessage) {
+        notificationContext.addNotification(notificationMessage)
+    }
+
+    protected fun addNotificationContext(notificationContext: NotificationContext) {
+        notificationContextCollection.add(notificationContext)
+    }
+
+    private suspend fun validateToInsert() {
+        startEntity()
+        if (!insertable) {
+            addNotificationMessage(
+                NotificationMessage(
+                    fieldName = ::insertable.name,
+                    fieldValue = insertable.toString(),
+                    funName = ::getInsertable.name,
+                    notification = InsertNotAllowedNotification()
+                )
+            )
+        }
         transactionMode = TransactionMode.INSERT
-        insertOrUpdateRules()
-        insertRules()
-        businessRules()
+        insertRules.runWithService()
+        insertOrUpdateRules.runWithService()
+        businessRules.runWithService()
         runValidateValueObjects()
         if (id != null) {
             addNotificationMessage(
@@ -74,16 +134,24 @@ abstract class Entity<TEntity : Entity<TEntity>> {
                 )
             )
         }
-        checkNotifications()
-        return ValidEntity.Insertable(this as TEntity)
     }
 
-    protected open suspend fun getUpdatable(service: Service<TEntity>? = null): ValidEntity.Updatable<TEntity> {
-        this.service = service
+    private suspend fun validateToUpdate() {
+        startEntity()
+        if (!updatable) {
+            addNotificationMessage(
+                NotificationMessage(
+                    fieldName = ::updatable.name,
+                    fieldValue = updatable.toString(),
+                    funName = ::getUpdatable.name,
+                    notification = UpdateNotAllowedNotification()
+                )
+            )
+        }
         transactionMode = TransactionMode.UPDATE
-        insertOrUpdateRules()
-        updateRules()
-        businessRules()
+        updateRules.runWithService()
+        insertOrUpdateRules.runWithService()
+        businessRules.runWithService()
         runValidateValueObjects()
         id?.isValid(::id.name, notificationContext)
             ?: addNotificationMessage(
@@ -92,15 +160,24 @@ abstract class Entity<TEntity : Entity<TEntity>> {
                     notification = UnableToUpdateWithoutIDNotification()
                 )
             )
-        checkNotifications()
-        return ValidEntity.Updatable(this as TEntity)
     }
 
-    protected open suspend fun getDeletable(service: Service<TEntity>? = null): ValidEntity.Deletable<TEntity> {
-        this.service = service
+    private suspend fun validateToDelete() {
+        startEntity()
+        if (!deletable) {
+            addNotificationMessage(
+                NotificationMessage(
+                    fieldName = ::deletable.name,
+                    fieldValue = deletable.toString(),
+                    funName = ::getDeletable.name,
+                    notification = DeleteNotAllowedNotification()
+                )
+            )
+        }
+
         transactionMode = TransactionMode.DELETE
-        deleteRules()
-        businessRules()
+        deleteRules.runWithService()
+        businessRules.runWithService()
         runValidateValueObjects()
         id?.isValid(::id.name, notificationContext)
             ?: addNotificationMessage(
@@ -109,16 +186,6 @@ abstract class Entity<TEntity : Entity<TEntity>> {
                     notification = UnableToDeleteWithoutIDNotification()
                 )
             )
-        checkNotifications()
-        return ValidEntity.Deletable(this as TEntity)
-    }
-
-    protected fun addNotificationMessage(notificationMessage: NotificationMessage) {
-        notificationContext.addNotification(notificationMessage)
-    }
-
-    protected fun addNotificationContext(notificationContext: NotificationContext) {
-        notificationContextCollection.add(notificationContext)
     }
 
     private fun checkNotifications() {
@@ -130,9 +197,25 @@ abstract class Entity<TEntity : Entity<TEntity>> {
         }
     }
 
+    private fun (TService?.() -> Unit).runWithService() {
+        if (service == null) {
+            this(null)
+        } else {
+            this(service as TService)
+        }
+    }
+
+    private fun getService() = if( service == null ) null else service as TService
+
     private suspend fun runValidateValueObjects() {
-        validateValueObjects().forEach {
+        validateValueObjects.forEach {
             it.second.isValid(it.first, notificationContext)
         }
+    }
+
+    private fun startEntity() {
+        notificationContext.clearNotifications()
+        transactionMode = TransactionMode.DISPLAY
+        service = null
     }
 }
