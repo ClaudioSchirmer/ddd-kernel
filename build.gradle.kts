@@ -8,6 +8,7 @@ val kotlinVersion: String by project
 val kotlinCoroutines: String by project
 val logbackVersion: String by project
 val kodeinVersion: String by project
+val jacksonKotlinModule: String by project
 
 
 plugins {
@@ -81,6 +82,10 @@ dependencies {
 
 	//Tests
 	testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
+
+	/*JacksonKotlinModule*/
+	implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonKotlinModule")
+	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonKotlinModule")
 }
 
 tasks.publish {

@@ -3,6 +3,7 @@ package br.dev.schirmer.ddd.kernel.domain.valueobjects
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
+import com.fasterxml.jackson.annotation.JsonIgnore
 import java.util.*
 
 data class Id(
@@ -10,6 +11,7 @@ data class Id(
 ) : ScalarValueObject<String>() {
 	constructor(uuid: UUID) : this(uuid.toString())
 
+	@get:JsonIgnore
 	val uuid: UUID by lazy {
 		try {
 			UUID.fromString(value)

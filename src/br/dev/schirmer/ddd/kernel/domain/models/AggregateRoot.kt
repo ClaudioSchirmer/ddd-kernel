@@ -3,7 +3,6 @@ package br.dev.schirmer.ddd.kernel.domain.models
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateEntityValueObject
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateItemStatus
-import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityIsNotActiveNotification
 
 @Suppress("UNCHECKED_CAST", "TYPE_INFERENCE_ONLY_INPUT_TYPES_WARNING")
 abstract class AggregateRoot<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>
@@ -132,36 +131,16 @@ abstract class AggregateRoot<TEntity : Entity<TEntity, TService, TInsertable, TU
     }
 
     protected suspend inline fun <reified TAggregateEntityValueObject> isAggregateItemValid(item: TAggregateEntityValueObject?): Boolean
-            where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> =
-        when {
-            item == null -> {
-                addNotificationMessage(
-                    NotificationMessage(
-                        fieldValue = "null",
-                        fieldName = TAggregateEntityValueObject::class.simpleName.toString(),
-                        notification = EntityDoesNotExistNotification()
-                    )
-                )
-                false
-            }
-            (item is Activatable) && !item.active -> {
-                addNotificationMessage(
-                    NotificationMessage(
-                        fieldValue = item.active.toString(),
-                        fieldName = "${TAggregateEntityValueObject::class.simpleName.toString()}.active",
-                        notification = EntityIsNotActiveNotification()
-                    )
-                )
-                false
-            }
-            item.isValid(
-                getService(),
-                transactionMode,
-                TAggregateEntityValueObject::class.simpleName.toString(),
-                notificationContext
-            ) -> {
-                true
-            }
-            else -> false
-        }
+            where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> = if (item == null) {
+        addNotificationMessage(
+            NotificationMessage(
+                fieldValue = "null",
+                fieldName = TAggregateEntityValueObject::class.simpleName.toString(),
+                notification = EntityDoesNotExistNotification()
+            )
+        )
+        false
+    } else {
+        true
+    }
 }
