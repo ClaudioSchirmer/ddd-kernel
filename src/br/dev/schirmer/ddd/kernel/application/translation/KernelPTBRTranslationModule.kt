@@ -32,6 +32,12 @@ object KernelPTBRTranslationModule : TranslateModule {
         "AggregateItemStatus.REMOVED" to "Removido",
         "Id" to "Chave primária",
 
+        /* Kernel.domain.events */
+        "EventType.UNKNOWN" to "Desconhecido",
+        "EventType.LOG" to "Log",
+        "EventType.AUDIT" to "Auditoria",
+        "EventType.DEBUG" to "Debug",
+
         /* Kernel.application */
         "InvalidLanguageDomainNotification" to "Idioma não é válido.",
         "SQLExceptionNotification" to "Registro não pode ser incluído, alterado ou excluído.",
