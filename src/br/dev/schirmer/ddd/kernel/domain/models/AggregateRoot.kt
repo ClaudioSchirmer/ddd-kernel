@@ -3,24 +3,25 @@ package br.dev.schirmer.ddd.kernel.domain.models
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateEntityValueObject
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateItemStatus
-import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityIsNotActiveNotification
 
 @Suppress("UNCHECKED_CAST", "TYPE_INFERENCE_ONLY_INPUT_TYPES_WARNING")
-abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
+abstract class AggregateRoot<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>
+    : Entity<TEntity, TService, TInsertable, TUpdatable>() {
 
     /** Aggregate Collections */
 
-    protected val aggregateItems = mutableMapOf<String, MutableList<AggregateItem<AggregateEntityValueObject<TEntity>>>>()
+    protected val aggregateItems =
+        mutableMapOf<String, MutableList<AggregateItem<TEntity, TService, AggregateEntityValueObject<TEntity, TService>>>>()
 
-    protected inline fun <reified TAggregateEntityValueObject> getAggregateItems(): List<AggregateItem<TAggregateEntityValueObject>>
-    where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
+    protected inline fun <reified TAggregateEntityValueObject> getAggregateItems(): List<AggregateItem<TEntity, TService, TAggregateEntityValueObject>>
+            where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> {
         val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
         return (aggregateItems.putIfAbsent(itemKey, mutableListOf())
-            ?: aggregateItems[itemKey]!!) as List<AggregateItem<TAggregateEntityValueObject>>
+            ?: aggregateItems[itemKey]!!) as List<AggregateItem<TEntity, TService, TAggregateEntityValueObject>>
     }
 
     protected suspend inline fun <reified TAggregateEntityValueObject> aggregateConstructor(items: List<TAggregateEntityValueObject>?)
-    where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
+            where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> {
         items?.forEach { item ->
             if (isAggregateItemValid(item)) {
                 val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
@@ -37,7 +38,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
     }
 
     protected suspend inline fun <reified TAggregateEntityValueObject> addAggregateItem(item: TAggregateEntityValueObject?)
-    where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
+            where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> {
         if (isAggregateItemValid(item)) {
             val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
             val list = aggregateItems.putIfAbsent(itemKey, mutableListOf()) ?: aggregateItems[itemKey]!!
@@ -73,7 +74,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
     protected suspend inline fun <reified TAggregateEntityValueObject> changeAggregateItem(
         item: TAggregateEntityValueObject?,
         changes: TAggregateEntityValueObject.() -> Unit
-    ) where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
+    ) where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> {
         if (isAggregateItemValid(item)) {
             val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
             val list = aggregateItems.putIfAbsent(itemKey, mutableListOf()) ?: aggregateItems[itemKey]!!
@@ -97,7 +98,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
     }
 
     protected suspend inline fun <reified TAggregateEntityValueObject> removeAggregateItem(item: TAggregateEntityValueObject?)
-    where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
+            where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> {
         if (item == null) {
             addNotificationMessage(
                 NotificationMessage(
@@ -122,7 +123,7 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
     }
 
     protected suspend inline fun <reified TAggregateEntityValueObject> clearAggregateItems()
-    where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> {
+            where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> {
         val itemKey = TAggregateEntityValueObject::class.simpleName.toString()
         (aggregateItems.putIfAbsent(itemKey, mutableListOf()) ?: aggregateItems[itemKey]!!).forEach {
             it.currentStatus = AggregateItemStatus.REMOVED
@@ -130,65 +131,16 @@ abstract class AggregateRoot<TEntity : Entity<TEntity>> : Entity<TEntity>() {
     }
 
     protected suspend inline fun <reified TAggregateEntityValueObject> isAggregateItemValid(item: TAggregateEntityValueObject?): Boolean
-    where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity> =
-        when {
-            item == null -> {
-                addNotificationMessage(
-                    NotificationMessage(
-                        fieldValue = "null",
-                        fieldName = TAggregateEntityValueObject::class.simpleName.toString(),
-                        notification = EntityDoesNotExistNotification()
-                    )
-                )
-                false
-            }
-            (item is Activatable) && !item.active -> {
-                addNotificationMessage(
-                    NotificationMessage(
-                        fieldValue = item.active.toString(),
-                        fieldName = "${TAggregateEntityValueObject::class.simpleName.toString()}.active",
-                        notification = EntityIsNotActiveNotification()
-                    )
-                )
-                false
-            }
-            item.isValid(
-                service,
-                transactionMode,
-                TAggregateEntityValueObject::class.simpleName.toString(),
-                notificationContext
-            ) -> {
-                true
-            }
-            else -> false
-        }
-
-    /** Aggregate References */
-
-    protected var validateAggregateEntityValueObjects: (() -> MutableList<Pair<String, AggregateEntityValueObject<TEntity>>>) =
-        { mutableListOf() }
-
-    override suspend fun getUpdatable(service: Service<TEntity>?): ValidEntity.Updatable<TEntity> {
-        this.service = service
-        runValidateAggregateEntityValueObjects()
-        return super.getUpdatable(service)
-    }
-
-    override suspend fun getDeletable(service: Service<TEntity>?): ValidEntity.Deletable<TEntity> {
-        this.service = service
-        runValidateAggregateEntityValueObjects()
-        return super.getDeletable(service)
-    }
-
-    override suspend fun getInsertable(service: Service<TEntity>?): ValidEntity.Insertable<TEntity> {
-        this.service = service
-        runValidateAggregateEntityValueObjects()
-        return super.getInsertable(service)
-    }
-
-    private suspend fun runValidateAggregateEntityValueObjects() {
-        validateAggregateEntityValueObjects().forEach {
-            it.second.isValid(service, transactionMode, it.first, notificationContext)
-        }
+            where TAggregateEntityValueObject : AggregateEntityValueObject<TEntity, TService> = if (item == null) {
+        addNotificationMessage(
+            NotificationMessage(
+                fieldValue = "null",
+                fieldName = TAggregateEntityValueObject::class.simpleName.toString(),
+                notification = EntityDoesNotExistNotification()
+            )
+        )
+        false
+    } else {
+        true
     }
 }

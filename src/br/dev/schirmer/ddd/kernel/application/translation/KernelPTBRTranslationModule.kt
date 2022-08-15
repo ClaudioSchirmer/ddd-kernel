@@ -15,6 +15,9 @@ object KernelPTBRTranslationModule : TranslateModule {
         "InvalidIDUUIDNotification" to "Chave primária do registro é inválida.",
         "InvalidAggregateItemStatusNotification" to "Situação do aggregado é inválida.",
         "EntityIsNotActiveNotification" to "Entidade não está ativa.",
+        "InsertNotAllowedNotification" to "Inclusão não permtida.",
+        "UpdateNotAllowedNotification" to "Atualização não permitida.",
+        "DeleteNotAllowedNotification" to "Exclusão não permitida",
 
         /* Kernel.domain.vo */
         "TransactionMode.UNKNOWN" to "Desconhecido",

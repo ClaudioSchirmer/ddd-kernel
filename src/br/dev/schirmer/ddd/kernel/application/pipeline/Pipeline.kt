@@ -1,6 +1,7 @@
 package br.dev.schirmer.ddd.kernel.application.pipeline
 
 import br.dev.schirmer.ddd.kernel.application.configuration.Context
+import br.dev.schirmer.ddd.kernel.application.exception.ApplicationNotificationContextException
 import br.dev.schirmer.ddd.kernel.application.translation.toNotificationContextDTO
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
@@ -51,7 +52,7 @@ class Pipeline(val context: Context) {
     } catch (e: DomainNotificationContextException) {
         e.notificationContext.writeLogs()
         Result.Failure(e.notificationContext.toNotificationContextDTO())
-    } catch (e: br.dev.schirmer.ddd.kernel.application.exception.ApplicationNotificationContextException) {
+    } catch (e: ApplicationNotificationContextException) {
         e.notificationContext.writeLogs()
         Result.Failure(e.notificationContext.toNotificationContextDTO())
     } catch (e: InfrastructureNotificationException) {
@@ -84,11 +85,11 @@ class Pipeline(val context: Context) {
         launch(Job()) {
             with(LoggerFactory.getLogger(this@Pipeline::class.java)) {
                 when (level) {
-                    Level.DEBUG -> debug("${context.id}-$text")
-                    Level.ERROR -> error("${context.id}-$text")
-                    Level.INFO -> info("${context.id}-$text")
-                    Level.TRACE -> trace("${context.id}-$text")
-                    Level.WARN -> warn("${context.id}-$text")
+                    Level.DEBUG -> debug("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
+                    Level.ERROR -> error("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
+                    Level.INFO -> info("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
+                    Level.TRACE -> trace("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
+                    Level.WARN -> warn("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
                 }
             }
         }
