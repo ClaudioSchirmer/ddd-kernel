@@ -1,5 +1,6 @@
 package br.dev.schirmer.ddd.kernel.domain.models
 
+import br.dev.schirmer.ddd.kernel.domain.events.DomainEvent
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
@@ -38,6 +39,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private var insertRules: ((service: TService?) -> Unit) = {}
     private var deleteRules: ((service: TService?) -> Unit) = {}
     private var service: TService? = null
+    private val events: MutableList<DomainEvent> = mutableListOf()
 
     protected open val insertableValidEntity: TInsertable = this as TInsertable
     protected open val updatableValidEntity: TUpdatable = this as TUpdatable
@@ -75,7 +77,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         this.service = service
         validateToInsert()
         checkNotifications()
-        return ValidEntity.Insertable(this::class.simpleName!!, id, insertableValidEntity, getDateTime())
+        return ValidEntity.Insertable(this::class.simpleName!!, id, insertableValidEntity, getDateTime(), events)
     }
 
     suspend fun getUpdatable(service: TService? = null): ValidEntity.Updatable<TEntity, TUpdatable> {
@@ -83,7 +85,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         this.service = service
         validateToUpdate()
         checkNotifications()
-        return ValidEntity.Updatable(this::class.simpleName!!, id!!, updatableValidEntity, getDateTime())
+        return ValidEntity.Updatable(this::class.simpleName!!, id!!, updatableValidEntity, getDateTime(), events)
     }
 
     suspend fun getDeletable(service: TService? = null): ValidEntity.Deletable<TEntity> {
@@ -91,7 +93,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         this.service = service
         validateToDelete()
         checkNotifications()
-        return ValidEntity.Deletable(this::class.simpleName!!, id!!, this.writeAsString(), getDateTime())
+        return ValidEntity.Deletable(this::class.simpleName!!, id!!, this.writeAsString(), getDateTime(), events)
     }
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
@@ -125,6 +127,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected fun addNotificationContext(notificationContext: NotificationContext) {
         notificationContextCollection.add(notificationContext)
     }
+    protected fun DomainEvent.register() = events.add(this)
+    protected fun registerEvent(domainEvent: DomainEvent) = events.add(domainEvent)
 
     @JsonIgnore
     private fun getService() = if (service == null) null else service as TService
@@ -238,17 +242,18 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         }
     }
 
+    private fun Any.writeAsString(): String = jacksonObjectMapper().apply {
+        registerKotlinModule()
+        registerModule(JavaTimeModule())
+        setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
+    }.writeValueAsString(this)
+
     private fun startEntity() {
+        events.clear()
         validateValueObjects.clear()
         validateAggregateEntityValueObjects.clear()
         notificationContext.clearNotifications()
         transactionMode = TransactionMode.DISPLAY
         service = null
     }
-
-    private fun Any.writeAsString(): String = jacksonObjectMapper().apply {
-        registerKotlinModule()
-        registerModule(JavaTimeModule())
-        setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
-    }.writeValueAsString(this)
 }

@@ -1,8 +1,13 @@
 package br.dev.schirmer.ddd.kernel.domain.models
 
 import br.dev.schirmer.ddd.kernel.application.configuration.Context
+import br.dev.schirmer.ddd.kernel.domain.events.DomainEvent
+import br.dev.schirmer.ddd.kernel.domain.events.EventType
+import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
-import br.dev.schirmer.ddd.kernel.infrastructure.validentity.publishAudit
+import br.dev.schirmer.ddd.kernel.infrastructure.events.publish
+import br.dev.schirmer.ddd.kernel.infrastructure.validentity.publish
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonRawValue
 import kotlinx.coroutines.runBlocking
 import java.time.ZonedDateTime
@@ -13,14 +18,18 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
         val entityName: String,
         val id: Id?,
         val fieldsToInsert: TInsertable,
-        val dateTime: ZonedDateTime
+        val dateTime: ZonedDateTime,
+        @JsonIgnore
+        val events: List<DomainEvent>
     ) : ValidEntity<TEntity>
 
     class Updatable<TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>>(
         val entityName: String,
         val id: Id,
         val fieldsToUpdate: TUpdatable,
-        val dateTime: ZonedDateTime
+        val dateTime: ZonedDateTime,
+        @JsonIgnore
+        val events: List<DomainEvent>
     ) : ValidEntity<TEntity>
 
     class Deletable<TEntity : Entity<TEntity, *, *, *>>(
@@ -28,7 +37,9 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
         val id: Id,
         @JsonRawValue
         val deletedFields: String,
-        val dateTime: ZonedDateTime
+        val dateTime: ZonedDateTime,
+        @JsonIgnore
+        val events: List<DomainEvent>
     ) : ValidEntity<TEntity>
 }
 
@@ -48,17 +59,31 @@ data class XYZ(
 
     init {
         id = Id(UUID.randomUUID())
+        businessRules {
+            DomainEvent(
+                EventType.LOG,
+                this::class.simpleName!!,
+                "Registro Excluído",
+                values = insertableValidEntity
+            ).register()
+        }
+        deleteRules {
+            DomainEvent(
+                EventType.LOG,
+                this::class.simpleName!!,
+                "exclusivo de exclusão"
+            ).register()
+        }
     }
 }
 
 fun main() {
     runBlocking {
-        //runCatching {
-        val insertable = XYZ(Id("Abacaxi"), "Guedes").getDeletable()
-        insertable.publishAudit(Context(id = UUID.randomUUID()))
-        //}.onFailure {
-
-        //  (it as DomainNotificationContextException).notificationContext.let(::println)
-        //}
+        runCatching {
+            val insertable = XYZ(Id("Abacaxi"), "Guedes").getDeletable()
+            insertable.publish(context = Context(UUID.randomUUID()))
+        }.onFailure {
+            (it as DomainNotificationContextException).notificationContext.let(::println)
+        }
     }
 }
