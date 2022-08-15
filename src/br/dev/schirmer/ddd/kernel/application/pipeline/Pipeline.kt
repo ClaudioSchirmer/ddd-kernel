@@ -84,11 +84,11 @@ class Pipeline(val context: Context) {
         launch(Job()) {
             with(LoggerFactory.getLogger(this@Pipeline::class.java)) {
                 when (level) {
-                    Level.DEBUG -> debug("${context.id}-$text")
-                    Level.ERROR -> error("${context.id}-$text")
-                    Level.INFO -> info("${context.id}-$text")
-                    Level.TRACE -> trace("${context.id}-$text")
-                    Level.WARN -> warn("${context.id}-$text")
+                    Level.DEBUG -> debug("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
+                    Level.ERROR -> error("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
+                    Level.INFO -> info("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
+                    Level.TRACE -> trace("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
+                    Level.WARN -> warn("{\"threadId\":\"${context.id}\",\"data\":\"$text\"}")
                 }
             }
         }

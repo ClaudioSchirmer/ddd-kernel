@@ -7,7 +7,6 @@ import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateEntityValueObject
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.TransactionMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.ValueObject
-import br.dev.schirmer.ddd.kernel.infrastructure.validentity.publish
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -18,20 +17,17 @@ import java.time.ZonedDateTime
 
 @Suppress("UNCHECKED_CAST")
 abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>(
-    @JsonIgnore
-    open val insertable: Boolean = false,
-    @JsonIgnore
-    open val updatable: Boolean = false,
-    @JsonIgnore
-    open val deletable: Boolean = false
+    protected open val insertable: Boolean = false,
+    protected open val updatable: Boolean = false,
+    protected open val deletable: Boolean = false
 ) : ValidEntity<TEntity> {
     @JsonIgnore
     var id: Id? = null
         protected set
     private val notificationContextCollection: MutableList<NotificationContext> = mutableListOf()
-    @JsonIgnore
+
     protected val notificationContext = NotificationContext(this::class.simpleName.toString())
-    @JsonIgnore
+
     protected var transactionMode: TransactionMode = TransactionMode.DISPLAY
     private var validateValueObjects: MutableList<Pair<String, ValueObject>> = mutableListOf()
     private var validateAggregateEntityValueObjects: MutableList<Pair<String, AggregateEntityValueObject<TEntity, TService>>> =
@@ -43,10 +39,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private var deleteRules: ((service: TService?) -> Unit) = {}
     private var service: TService? = null
 
-    @JsonIgnore
-    open val insertableValidEntity: TInsertable = this as TInsertable
-    @JsonIgnore
-    open val updatableValidEntity: TUpdatable = this as TUpdatable
+    protected open val insertableValidEntity: TInsertable = this as TInsertable
+    protected open val updatableValidEntity: TUpdatable = this as TUpdatable
 
     suspend fun isValid(
         transactionMode: TransactionMode,
@@ -81,7 +75,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         this.service = service
         validateToInsert()
         checkNotifications()
-        return ValidEntity.Insertable(id, transactionMode, insertableValidEntity, getDateTime())
+        return ValidEntity.Insertable(this::class.simpleName!!, id, insertableValidEntity, getDateTime())
     }
 
     suspend fun getUpdatable(service: TService? = null): ValidEntity.Updatable<TEntity, TUpdatable> {
@@ -89,7 +83,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         this.service = service
         validateToUpdate()
         checkNotifications()
-        return ValidEntity.Updatable(id!!, transactionMode, updatableValidEntity, getDateTime())
+        return ValidEntity.Updatable(this::class.simpleName!!, id!!, updatableValidEntity, getDateTime())
     }
 
     suspend fun getDeletable(service: TService? = null): ValidEntity.Deletable<TEntity> {
@@ -97,7 +91,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         this.service = service
         validateToDelete()
         checkNotifications()
-        return ValidEntity.Deletable(id!!, transactionMode, this.writeAsString(), getDateTime())
+        return ValidEntity.Deletable(this::class.simpleName!!, id!!, this.writeAsString(), getDateTime())
     }
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
@@ -134,6 +128,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     @JsonIgnore
     private fun getService() = if (service == null) null else service as TService
+
     @JsonIgnore
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
 
@@ -251,7 +246,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         service = null
     }
 
-    private fun Any.writeAsString() : String = jacksonObjectMapper().apply {
+    private fun Any.writeAsString(): String = jacksonObjectMapper().apply {
         registerKotlinModule()
         registerModule(JavaTimeModule())
         setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
