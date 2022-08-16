@@ -100,8 +100,9 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
-    protected fun AggregateEntityValueObject<TEntity, TService>.addToValidate(name: String) =
-        validateAggregateEntityValueObjects.add(Pair(name, this))
+    protected fun List<AggregateEntityValueObject<TEntity, TService>>.addToValidate(name: String) = forEach { aggregateEntityValueObject ->
+        validateAggregateEntityValueObjects.add(Pair(name, aggregateEntityValueObject))
+    }
 
     protected fun insertRules(function: (service: TService?) -> Unit) {
         insertRules = function
@@ -133,12 +134,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected fun DomainEvent.register() = events.add(this)
     protected fun registerEvent(domainEvent: DomainEvent) = events.add(domainEvent)
 
-    @JsonIgnore
     private fun getService() = if (service == null) null else service as TService
-
-    @JsonIgnore
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
-
     private suspend fun validateToInsert() {
         if (!insertable) {
             addNotificationMessage(

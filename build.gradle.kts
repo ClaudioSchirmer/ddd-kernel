@@ -42,7 +42,7 @@ java {
 }
 
 group = "br.dev.schirmer"
-version = "2.2.0"
+version = "2.2.1"
 
 sourceSets.main {
 	withConvention(KotlinSourceSet::class) {
