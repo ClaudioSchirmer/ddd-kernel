@@ -10,6 +10,27 @@ class NotificationContext(
 		notificationsInContext.add(notificationMessage)
 	}
 
+	fun changeFieldName(notificationMessage: NotificationMessage, newFieldName: String) {
+		notificationsInContext.remove(notificationMessage)
+		addNotification(
+			NotificationMessage(
+				fieldName = newFieldName,
+				fieldValue = notificationMessage.fieldValue,
+				funName = notificationMessage.funName,
+				exception = notificationMessage.exception,
+				notification = notificationMessage.notification
+			)
+		)
+	}
+
+	fun changeFieldName(originalFieldName: String, newFieldName: String) {
+		notificationsInContext.forEach { notificationMessage ->
+			if (notificationMessage.fieldName == originalFieldName) {
+				changeFieldName(notificationMessage, newFieldName)
+			}
+		}
+	}
+
 	fun clearNotifications() {
 		notificationsInContext.clear()
 	}
