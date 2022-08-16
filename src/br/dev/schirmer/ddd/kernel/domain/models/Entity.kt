@@ -12,10 +12,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import  br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 
 @Suppress("UNCHECKED_CAST")
 abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : SealedValidEntity<TEntity>, TUpdatable : SealedValidEntity<TEntity>>(
@@ -41,16 +41,21 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private var deleteRules: ((service: TService?) -> Unit) = {}
     private var service: TService? = null
     private val events: MutableList<DomainEvent> = mutableListOf()
-
+    private val fieldNamesToChange: MutableMap<String, String> = mutableMapOf()
     protected open val insertableValidEntity: TInsertable = this as TInsertable
     protected open val updatableValidEntity: TUpdatable = this as TUpdatable
 
-    protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> : SealedValidEntity<TEntity>
+    fun addFieldNameToChange(originalFieldName: String, newFieldName: String) {
+        fieldNamesToChange.put(originalFieldName, newFieldName)
+    }
+
+    fun addFieldNamesToChange(fieldNamesToChange: Map<String, String>) =
+        this.fieldNamesToChange.putAll(fieldNamesToChange)
 
     suspend fun isValid(
         transactionMode: TransactionMode,
         service: TService? = null,
-        _notificationContext: NotificationContext
+        notificationContext: NotificationContext
     ): Boolean {
         startEntity()
         if (service != null) {
@@ -68,11 +73,11 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             }
             else -> {}
         }
-        notificationContext.notifications.forEach {
-            _notificationContext.addNotification(it)
+        this.notificationContext.notifications.forEach {
+            notificationContext.addNotification(it)
         }
         startEntity()
-        return _notificationContext.notifications.isNotEmpty()
+        return notificationContext.notifications.isNotEmpty()
     }
 
     suspend fun getInsertable(service: TService? = null): SealedValidEntity.Insertable<TEntity, TInsertable> {
@@ -99,10 +104,13 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         return SealedValidEntity.Deletable(this::class.simpleName!!, id!!, this.writeAsString(), getDateTime(), events)
     }
 
+    protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> : SealedValidEntity<TEntity>
+
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
-    protected fun List<AggregateEntityValueObject<TEntity, TService>>.addToValidate(name: String) = forEach { aggregateEntityValueObject ->
-        validateAggregateEntityValueObjects.add(Pair(name, aggregateEntityValueObject))
-    }
+    protected fun List<AggregateEntityValueObject<TEntity, TService>>.addToValidate(name: String) =
+        forEach { aggregateEntityValueObject ->
+            validateAggregateEntityValueObjects.add(Pair(name, aggregateEntityValueObject))
+        }
 
     protected fun insertRules(function: (service: TService?) -> Unit) {
         insertRules = function
@@ -131,6 +139,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected fun addNotificationContext(notificationContext: NotificationContext) {
         notificationContextCollection.add(notificationContext)
     }
+
     protected fun DomainEvent.register() = events.add(this)
     protected fun registerEvent(domainEvent: DomainEvent) = events.add(domainEvent)
 
@@ -219,11 +228,23 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             )
     }
 
+    private fun changeFieldNames() {
+        notificationContext.notifications.forEach { notificationMessage ->
+            if (!fieldNamesToChange[notificationMessage.fieldName].isNullOrBlank()) {
+                notificationContext.changeFieldName(
+                    notificationMessage,
+                    fieldNamesToChange[notificationMessage.fieldName]!!
+                )
+            }
+        }
+    }
+
     private fun checkNotifications() {
         if (notificationContext.notifications.isNotEmpty()) {
             notificationContextCollection.add(notificationContext)
         }
         if (notificationContextCollection.any { it.notifications.isNotEmpty() }) {
+            changeFieldNames()
             throw DomainNotificationContextException(notificationContextCollection)
         }
     }
