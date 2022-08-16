@@ -12,16 +12,17 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import  br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
 @Suppress("UNCHECKED_CAST")
-abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>(
+abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : SealedValidEntity<TEntity>, TUpdatable : SealedValidEntity<TEntity>>(
     protected open val insertable: Boolean = false,
     protected open val updatable: Boolean = false,
     protected open val deletable: Boolean = false
-) : ValidEntity<TEntity> {
+) : SealedValidEntity<TEntity> {
     @JsonIgnore
     var id: Id? = null
         protected set
@@ -43,6 +44,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     protected open val insertableValidEntity: TInsertable = this as TInsertable
     protected open val updatableValidEntity: TUpdatable = this as TUpdatable
+
+    protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> : SealedValidEntity<TEntity>
 
     suspend fun isValid(
         transactionMode: TransactionMode,
@@ -72,28 +75,28 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         return _notificationContext.notifications.isNotEmpty()
     }
 
-    suspend fun getInsertable(service: TService? = null): ValidEntity.Insertable<TEntity, TInsertable> {
+    suspend fun getInsertable(service: TService? = null): SealedValidEntity.Insertable<TEntity, TInsertable> {
         startEntity()
         this.service = service
         validateToInsert()
         checkNotifications()
-        return ValidEntity.Insertable(this::class.simpleName!!, id, insertableValidEntity, getDateTime(), events)
+        return SealedValidEntity.Insertable(this::class.simpleName!!, id, insertableValidEntity, getDateTime(), events)
     }
 
-    suspend fun getUpdatable(service: TService? = null): ValidEntity.Updatable<TEntity, TUpdatable> {
+    suspend fun getUpdatable(service: TService? = null): SealedValidEntity.Updatable<TEntity, TUpdatable> {
         startEntity()
         this.service = service
         validateToUpdate()
         checkNotifications()
-        return ValidEntity.Updatable(this::class.simpleName!!, id!!, updatableValidEntity, getDateTime(), events)
+        return SealedValidEntity.Updatable(this::class.simpleName!!, id!!, updatableValidEntity, getDateTime(), events)
     }
 
-    suspend fun getDeletable(service: TService? = null): ValidEntity.Deletable<TEntity> {
+    suspend fun getDeletable(service: TService? = null): SealedValidEntity.Deletable<TEntity> {
         startEntity()
         this.service = service
         validateToDelete()
         checkNotifications()
-        return ValidEntity.Deletable(this::class.simpleName!!, id!!, this.writeAsString(), getDateTime(), events)
+        return SealedValidEntity.Deletable(this::class.simpleName!!, id!!, this.writeAsString(), getDateTime(), events)
     }
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
