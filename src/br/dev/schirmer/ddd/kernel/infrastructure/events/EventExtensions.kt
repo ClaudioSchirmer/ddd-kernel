@@ -21,4 +21,3 @@ fun Event.publish(context: Context) {
         }
     }
 }
-

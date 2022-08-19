@@ -26,11 +26,10 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     @JsonIgnore
     var id: Id? = null
         protected set
-    private val notificationContextCollection: MutableList<NotificationContext> = mutableListOf()
-
     protected val notificationContext = NotificationContext(this::class.simpleName.toString())
 
     protected var transactionMode: TransactionMode = TransactionMode.DISPLAY
+        private set
     private var validateValueObjects: MutableList<Pair<String, ValueObject>> = mutableListOf()
     private var validateAggregateEntityValueObjects: MutableList<Pair<String, AggregateEntityValueObject<TEntity, TService>>> =
         mutableListOf()
@@ -41,6 +40,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private var deleteRules: ((service: TService?) -> Unit) = {}
     private var service: TService? = null
     private val events: MutableList<DomainEvent> = mutableListOf()
+    private val notificationContextCollection: MutableList<NotificationContext> = mutableListOf()
     private val fieldNamesToChange: MutableMap<String, String> = mutableMapOf()
     protected open val insertableValidEntity: TInsertable = this as TInsertable
     protected open val updatableValidEntity: TUpdatable = this as TUpdatable
@@ -65,12 +65,15 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             TransactionMode.INSERT -> {
                 validateToInsert()
             }
+
             TransactionMode.UPDATE -> {
                 validateToUpdate()
             }
+
             TransactionMode.DELETE -> {
                 validateToDelete()
             }
+
             else -> {}
         }
         this.notificationContext.notifications.forEach {
@@ -146,6 +149,12 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private fun getService() = if (service == null) null else service as TService
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
     private suspend fun validateToInsert() {
+        transactionMode = TransactionMode.INSERT
+        insertRules.runWithService()
+        insertOrUpdateRules.runWithService()
+        businessRules.runWithService()
+        runValidateValueObjects()
+        runValidateAggregateEntityValueObjects()
         if (!insertable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -156,12 +165,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 )
             )
         }
-        transactionMode = TransactionMode.INSERT
-        insertRules.runWithService()
-        insertOrUpdateRules.runWithService()
-        businessRules.runWithService()
-        runValidateValueObjects()
-        runValidateAggregateEntityValueObjects()
         if (id != null) {
             addNotificationMessage(
                 NotificationMessage(
@@ -175,6 +178,12 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     private suspend fun validateToUpdate() {
+        transactionMode = TransactionMode.UPDATE
+        updateRules.runWithService()
+        insertOrUpdateRules.runWithService()
+        businessRules.runWithService()
+        runValidateValueObjects()
+        runValidateAggregateEntityValueObjects()
         if (!updatable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -185,12 +194,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 )
             )
         }
-        transactionMode = TransactionMode.UPDATE
-        updateRules.runWithService()
-        insertOrUpdateRules.runWithService()
-        businessRules.runWithService()
-        runValidateValueObjects()
-        runValidateAggregateEntityValueObjects()
         id?.isValid(::id.name, notificationContext)
             ?: addNotificationMessage(
                 NotificationMessage(
@@ -202,6 +205,11 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     private suspend fun validateToDelete() {
+        transactionMode = TransactionMode.DELETE
+        deleteRules.runWithService()
+        businessRules.runWithService()
+        runValidateValueObjects()
+        runValidateAggregateEntityValueObjects()
         if (!deletable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -212,12 +220,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 )
             )
         }
-
-        transactionMode = TransactionMode.DELETE
-        deleteRules.runWithService()
-        businessRules.runWithService()
-        runValidateValueObjects()
-        runValidateAggregateEntityValueObjects()
         id?.isValid(::id.name, notificationContext)
             ?: addNotificationMessage(
                 NotificationMessage(

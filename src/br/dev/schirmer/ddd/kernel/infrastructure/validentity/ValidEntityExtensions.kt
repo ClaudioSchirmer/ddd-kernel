@@ -34,7 +34,7 @@ inline fun <reified TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : Va
         setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
     }.writeValueAsString(this).let { text ->
         with(LoggerFactory.getLogger(this::class.java)) {
-            debug("{\"threadId\":\"${context.id}\",\"EventType\":\"AUDIT\",\"action\":\"UPDATE\",\"data\":$text}")
+            debug("{\"threadId\":\"${context.id}\",\"EventType\":\"AUDIT\",\"Action\":\"UPDATE\",\"data\":$text}")
         }
     }
     this.events.publish(context)
@@ -49,7 +49,7 @@ inline fun <reified TEntity : Entity<TEntity, *, *, *>> ValidEntity.Deletable<TE
         setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
     }.writeValueAsString(this).let { text ->
         with(LoggerFactory.getLogger(this::class.java)) {
-            debug("{\"threadId\":\"${context.id}\",\"EventType\":\"AUDIT\",\"action\":\"DELETE\",\"data\":$text}")
+            debug("{\"threadId\":\"${context.id}\",\"EventType\":\"AUDIT\",\"Action\":\"DELETE\",\"data\":$text}")
         }
     }
     this.events.publish(context)
