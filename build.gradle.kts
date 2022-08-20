@@ -13,7 +13,7 @@ val jacksonKotlinModule: String by project
 
 plugins {
 	application
-	kotlin("jvm") version "1.7.0"
+	kotlin("jvm") version "1.7.10"
 	java
 	`maven-publish`
 }
@@ -42,18 +42,17 @@ java {
 }
 
 group = "br.dev.schirmer"
-version = "2.4.0"
+version = "2.5.0"
 
 sourceSets.main {
-	withConvention(KotlinSourceSet::class) {
-		kotlin.srcDirs("src")
+	java {
+		srcDirs("src")
 	}
-	//resources.srcDirs("resources")
 }
 
 sourceSets.test {
-	withConvention(KotlinSourceSet::class) {
-		kotlin.srcDirs("test")
+	java {
+		srcDirs("test")
 	}
 }
 
