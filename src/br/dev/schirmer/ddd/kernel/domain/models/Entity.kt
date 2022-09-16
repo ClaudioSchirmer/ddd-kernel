@@ -110,10 +110,14 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> : SealedValidEntity<TEntity>
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
+
     protected fun List<AggregateEntityValueObject<TEntity, TService>>.addToValidate(name: String) =
         forEach { aggregateEntityValueObject ->
             validateAggregateEntityValueObjects.add(Pair(name, aggregateEntityValueObject))
         }
+
+    protected fun AggregateEntityValueObject<TEntity, TService>.addToValidate(name: String) =
+            validateAggregateEntityValueObjects.add(Pair(name, this))
 
     protected fun insertRules(function: (service: TService?) -> Unit) {
         insertRules = function
