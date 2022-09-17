@@ -21,7 +21,8 @@ import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : SealedValidEntity<TEntity>, TUpdatable : SealedValidEntity<TEntity>>(
     protected open val insertable: Boolean = false,
     protected open val updatable: Boolean = false,
-    protected open val deletable: Boolean = false
+    protected open val deletable: Boolean = false,
+    protected open val serviceRequired: Boolean = false
 ) : SealedValidEntity<TEntity> {
     @JsonIgnore
     var id: Id? = null
@@ -154,6 +155,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
     private suspend fun validateToInsert() {
         transactionMode = TransactionMode.INSERT
+        checkService()
         insertRules.runWithService()
         insertOrUpdateRules.runWithService()
         businessRules.runWithService()
@@ -183,6 +185,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     private suspend fun validateToUpdate() {
         transactionMode = TransactionMode.UPDATE
+        checkService()
         updateRules.runWithService()
         insertOrUpdateRules.runWithService()
         businessRules.runWithService()
@@ -210,6 +213,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     private suspend fun validateToDelete() {
         transactionMode = TransactionMode.DELETE
+        checkService()
         deleteRules.runWithService()
         businessRules.runWithService()
         runValidateValueObjects()
@@ -256,6 +260,20 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     private fun (TService?.() -> Unit).runWithService() = this(getService())
+
+    private fun checkService() {
+        if (getService() == null && serviceRequired) {
+            addNotificationMessage(
+                NotificationMessage(
+                    fieldName = ::service.name,
+                    fieldValue = null,
+                    funName = ::checkService.name,
+                    notification = ServiceIsRequiredNotification()
+                )
+            )
+            checkNotifications()
+        }
+    }
 
     private suspend fun runValidateValueObjects() {
         validateValueObjects.forEach {
