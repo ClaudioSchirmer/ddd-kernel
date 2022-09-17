@@ -18,6 +18,7 @@ object KernelPTBRTranslationModule : TranslateModule {
         "InsertNotAllowedNotification" to "Inclusão não permtida.",
         "UpdateNotAllowedNotification" to "Atualização não permitida.",
         "DeleteNotAllowedNotification" to "Exclusão não permitida",
+        "ServiceIsRequiredNotification" to "Serviço é obrigatório.",
 
         /* Kernel.domain.vo */
         "TransactionMode.UNKNOWN" to "Desconhecido",

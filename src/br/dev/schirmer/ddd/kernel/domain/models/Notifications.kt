@@ -10,6 +10,7 @@ class UnableToDeleteWithoutIDNotification : DomainNotification
 class InsertNotAllowedNotification : DomainNotification
 class UpdateNotAllowedNotification : DomainNotification
 class DeleteNotAllowedNotification : DomainNotification
+class ServiceIsRequiredNotification : DomainNotification
 
 /*AGGREGATE ROOT*/
 class EntityAlreadyAddedNotification : DomainNotification
