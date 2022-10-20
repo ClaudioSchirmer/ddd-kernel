@@ -6,8 +6,8 @@ import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateItemStatus
 
 @Suppress("UNCHECKED_CAST", "TYPE_INFERENCE_ONLY_INPUT_TYPES_WARNING")
 abstract class AggregateRoot<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>(
-    insertable: Boolean = false, updatable: Boolean = false, deletable: Boolean = false
-) : Entity<TEntity, TService, TInsertable, TUpdatable>(insertable, updatable, deletable) {
+    insertable: Boolean = false, updatable: Boolean = false, deletable: Boolean = false, serviceRequired: Boolean = false
+) : Entity<TEntity, TService, TInsertable, TUpdatable>(insertable, updatable, deletable, serviceRequired) {
 
     /** Aggregate Collections */
     protected val aggregateItems =
