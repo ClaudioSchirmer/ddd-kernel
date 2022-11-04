@@ -15,6 +15,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.*
 import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 
 @Suppress("UNCHECKED_CAST")
@@ -34,11 +35,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private var validateValueObjects: MutableList<Pair<String, ValueObject>> = mutableListOf()
     private var validateAggregateEntityValueObjects: MutableList<Pair<String, AggregateEntityValueObject<TEntity, TService>>> =
         mutableListOf()
-    private var businessRules: ((service: TService?) -> Unit) = {}
-    private var insertOrUpdateRules: ((service: TService?) -> Unit) = {}
-    private var updateRules: ((service: TService?) -> Unit) = {}
-    private var insertRules: ((service: TService?) -> Unit) = {}
-    private var deleteRules: ((service: TService?) -> Unit) = {}
     private var service: TService? = null
     private val events: MutableList<DomainEvent> = mutableListOf()
     private val notificationContextCollection: MutableList<NotificationContext> = mutableListOf()
@@ -118,27 +114,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         }
 
     protected fun AggregateEntityValueObject<TEntity, TService>.addToValidate(name: String) =
-            validateAggregateEntityValueObjects.add(Pair(name, this))
-
-    protected fun insertRules(function: (service: TService?) -> Unit) {
-        insertRules = function
-    }
-
-    protected fun updateRules(function: (service: TService?) -> Unit) {
-        updateRules = function
-    }
-
-    protected fun insertOrUpdateRules(function: (service: TService?) -> Unit) {
-        insertOrUpdateRules = function
-    }
-
-    protected fun deleteRules(function: (service: TService?) -> Unit) {
-        deleteRules = function
-    }
-
-    protected fun businessRules(function: (service: TService?) -> Unit) {
-        businessRules = function
-    }
+        validateAggregateEntityValueObjects.add(Pair(name, this))
 
     protected fun addNotificationMessage(notificationMessage: NotificationMessage) {
         notificationContext.addNotification(notificationMessage)
@@ -151,14 +127,63 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected fun DomainEvent.register() = events.add(this)
     protected fun registerEvent(domainEvent: DomainEvent) = events.add(domainEvent)
 
+    protected abstract fun rules(service: TService?): Rules
+    protected fun rules(rules: Rules.() -> Unit): Rules = Rules().apply(rules)
+
+    protected class Rules {
+        private var insert: suspend () -> Unit = { }
+        private var update: suspend () -> Unit = { }
+        private var delete: suspend () -> Unit = { }
+        private var insertOrUpdate: suspend () -> Unit = { }
+        private var commons: suspend () -> Unit = { }
+        suspend fun executeInsertRules() {
+            insert()
+            insertOrUpdate()
+            commons()
+        }
+
+        suspend fun executeUpdateRules() {
+            update()
+            insertOrUpdate()
+            commons()
+        }
+
+        suspend fun executeDeleteRules() {
+            delete()
+            commons()
+        }
+
+        companion object {
+            fun Rules.ifInsert(rules: suspend () -> Unit) {
+                insert = rules
+            }
+
+            fun Rules.ifUpdate(rules: suspend () -> Unit) {
+                update = rules
+            }
+
+            fun Rules.ifDelete(rules: suspend () -> Unit) {
+                delete = rules
+            }
+
+            fun Rules.ifInsertOrUpdate(rules: suspend () -> Unit) {
+                insertOrUpdate = rules
+            }
+
+            fun Rules.commons(rules: suspend () -> Unit) {
+                commons = rules
+            }
+        }
+    }
+
+    private fun buildRules() = rules(getService())
+
     private fun getService() = if (service == null) null else service as TService
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
     private suspend fun validateToInsert() {
         transactionMode = TransactionMode.INSERT
         checkService()
-        insertRules.runWithService()
-        insertOrUpdateRules.runWithService()
-        businessRules.runWithService()
+        buildRules().executeInsertRules()
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         if (!insertable) {
@@ -186,9 +211,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private suspend fun validateToUpdate() {
         transactionMode = TransactionMode.UPDATE
         checkService()
-        updateRules.runWithService()
-        insertOrUpdateRules.runWithService()
-        businessRules.runWithService()
+        buildRules().executeUpdateRules()
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         if (!updatable) {
@@ -214,8 +237,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private suspend fun validateToDelete() {
         transactionMode = TransactionMode.DELETE
         checkService()
-        deleteRules.runWithService()
-        businessRules.runWithService()
+        buildRules().executeDeleteRules()
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         if (!deletable) {
@@ -258,8 +280,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             throw DomainNotificationContextException(notificationContextCollection)
         }
     }
-
-    private fun (TService?.() -> Unit).runWithService() = this(getService())
 
     private fun checkService() {
         if (getService() == null && serviceRequired) {
