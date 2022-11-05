@@ -128,6 +128,21 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected fun DomainEvent.register() = events.add(this)
     protected fun registerEvent(domainEvent: DomainEvent) = events.add(domainEvent)
 
+    /**
+     * Rules must be configured here.
+     *
+     * Example:
+     *
+     * protected abstract fun buildRules(service: TService?): Rules = rules {
+     *
+     *      ifInsert {
+     *
+     *          //Code
+     *
+     *      }
+     *
+     *  }
+     */
     protected abstract fun buildRules(service: TService?): Rules
     protected fun rules(rules: Rules.() -> Unit): Rules = Rules().apply(rules)
 
@@ -138,14 +153,14 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         private var insertOrUpdate: suspend () -> Unit = { }
         private var commons: suspend () -> Unit = { }
         suspend fun executeInsertRules() {
-            insert()
             insertOrUpdate()
+            insert()
             commons()
         }
 
         suspend fun executeUpdateRules() {
-            update()
             insertOrUpdate()
+            update()
             commons()
         }
 
@@ -155,22 +170,41 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         }
 
         companion object {
+            /**
+             * Rules to run only on inserts.
+             * It will be executed after ifInsertOrUpdate rules.
+             */
             fun Rules.ifInsert(rules: suspend () -> Unit) {
                 insert = rules
             }
 
+            /**
+             * Rules to run only on updates.
+             * It will be executed after ifInsertOrUpdate rules.
+             */
             fun Rules.ifUpdate(rules: suspend () -> Unit) {
                 update = rules
             }
 
+            /**
+             * Rules to run only on deletes.
+             */
             fun Rules.ifDelete(rules: suspend () -> Unit) {
                 delete = rules
             }
 
+            /**
+             * Rules to run on inserts or updates.
+             * It will be executed before ifInsert or ifUpdate rules.
+             */
             fun Rules.ifInsertOrUpdate(rules: suspend () -> Unit) {
                 insertOrUpdate = rules
             }
 
+            /**
+             * Rules to always run.
+             * It will be executed last.
+             */
             fun Rules.commons(rules: suspend () -> Unit) {
                 commons = rules
             }
