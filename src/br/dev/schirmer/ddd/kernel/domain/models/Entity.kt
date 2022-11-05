@@ -2,9 +2,6 @@ package br.dev.schirmer.ddd.kernel.domain.models
 
 import br.dev.schirmer.ddd.kernel.domain.events.DomainEvent
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
-import br.dev.schirmer.ddd.kernel.domain.models.Entity.Rules.Companion.commons
-import br.dev.schirmer.ddd.kernel.domain.models.Entity.Rules.Companion.ifInsert
-import br.dev.schirmer.ddd.kernel.domain.models.Entity.Rules.Companion.ifInsertOrUpdate
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateEntityValueObject
@@ -145,7 +142,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
      *      }
      *
      *  }
-     */protected abstract fun buildRules(service: TService?): Rules
+     */
+    protected abstract fun buildRules(service: TService?): Rules
     protected fun rules(rules: Rules.() -> Unit): Rules = Rules().apply(rules)
 
     protected class Rules {
@@ -179,6 +177,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             fun Rules.ifInsert(rules: suspend () -> Unit) {
                 insert = rules
             }
+
             /**
              * Rules to run only on updates.
              * It will be executed after ifInsertOrUpdate rules.
@@ -186,12 +185,14 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             fun Rules.ifUpdate(rules: suspend () -> Unit) {
                 update = rules
             }
+
             /**
              * Rules to run only on deletes.
              */
             fun Rules.ifDelete(rules: suspend () -> Unit) {
                 delete = rules
             }
+
             /**
              * Rules to run on inserts or updates.
              * It will be executed before ifInsert or ifUpdate rules.
@@ -199,6 +200,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             fun Rules.ifInsertOrUpdate(rules: suspend () -> Unit) {
                 insertOrUpdate = rules
             }
+
             /**
              * Rules to always run.
              * It will be executed last.
