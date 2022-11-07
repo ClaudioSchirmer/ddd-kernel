@@ -4,7 +4,7 @@ import br.dev.schirmer.ddd.kernel.domain.events.DomainEvent
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
-import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityAggregateValueObject
+import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateValueObject
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.ValueObject
@@ -28,7 +28,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private var serviceRequired: Boolean = false
     private var entityMode: EntityMode = EntityMode.DISPLAY
     private var validateValueObjects: MutableList<Pair<String, ValueObject>> = mutableListOf()
-    private var validateEntityAggregateValueObjects: MutableList<Pair<String, EntityAggregateValueObject<TEntity, TService>>> =
+    private var validateAggregateValueObjects: MutableList<Pair<String, AggregateValueObject<TEntity, TService>>> =
         mutableListOf()
     private var service: TService? = null
     private val events: MutableList<DomainEvent> = mutableListOf()
@@ -127,13 +127,13 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
 
-    protected fun List<EntityAggregateValueObject<TEntity, TService>>.addToValidate(name: String) =
+    protected fun List<AggregateValueObject<TEntity, TService>>.addToValidate(name: String) =
         forEach { aggregateEntityValueObject ->
-            validateEntityAggregateValueObjects.add(Pair(name, aggregateEntityValueObject))
+            validateAggregateValueObjects.add(Pair(name, aggregateEntityValueObject))
         }
 
-    protected fun EntityAggregateValueObject<TEntity, TService>.addToValidate(name: String) =
-        validateEntityAggregateValueObjects.add(Pair(name, this))
+    protected fun AggregateValueObject<TEntity, TService>.addToValidate(name: String) =
+        validateAggregateValueObjects.add(Pair(name, this))
 
     protected fun addNotificationMessage(notificationMessage: NotificationMessage) {
         notificationContext.addNotification(notificationMessage)
@@ -321,7 +321,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     private suspend fun runValidateAggregateEntityValueObjects() {
-        validateEntityAggregateValueObjects.forEach {
+        validateAggregateValueObjects.forEach {
             it.second.isValid(getService(), entityMode, it.first, notificationContext)
         }
     }
@@ -335,7 +335,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private fun startEntity() {
         events.clear()
         validateValueObjects.clear()
-        validateEntityAggregateValueObjects.clear()
+        validateAggregateValueObjects.clear()
         notificationContext.clearNotifications()
         entityMode = EntityMode.DISPLAY
         service = null
