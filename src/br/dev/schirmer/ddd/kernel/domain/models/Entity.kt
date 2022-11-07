@@ -4,9 +4,9 @@ import br.dev.schirmer.ddd.kernel.domain.events.DomainEvent
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
-import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateEntityValueObject
+import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityAggregateValueObject
+import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
-import br.dev.schirmer.ddd.kernel.domain.valueobjects.TransactionMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.ValueObject
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -19,26 +19,44 @@ import java.util.*
 import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 
 @Suppress("UNCHECKED_CAST")
-abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : SealedValidEntity<TEntity>, TUpdatable : SealedValidEntity<TEntity>>(
-    private val insertable: Boolean = false,
-    private val updatable: Boolean = false,
-    private val deletable: Boolean = false,
-    private val serviceRequired: Boolean = false
-) : SealedValidEntity<TEntity> {
-    @JsonIgnore
-    var id: Id? = null
-        protected set
-    protected val notificationContext = NotificationContext(this::class.simpleName.toString())
+abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>, TService : Service<TEntity>, TInsertable : SealedValidEntity<TEntity>, TUpdatable : SealedValidEntity<TEntity>>
+    : SealedValidEntity<TEntity> {
 
-    protected var transactionMode: TransactionMode = TransactionMode.DISPLAY
-        private set
+    private var insertable: Boolean = false
+    private var updatable: Boolean = false
+    private var deletable: Boolean = false
+    private var serviceRequired: Boolean = false
+    private var entityMode: EntityMode = EntityMode.DISPLAY
     private var validateValueObjects: MutableList<Pair<String, ValueObject>> = mutableListOf()
-    private var validateAggregateEntityValueObjects: MutableList<Pair<String, AggregateEntityValueObject<TEntity, TService>>> =
+    private var validateEntityAggregateValueObjects: MutableList<Pair<String, EntityAggregateValueObject<TEntity, TService>>> =
         mutableListOf()
     private var service: TService? = null
     private val events: MutableList<DomainEvent> = mutableListOf()
     private val notificationContextCollection: MutableList<NotificationContext> = mutableListOf()
     private val fieldNamesToChange: MutableMap<String, String> = mutableMapOf()
+
+    @JsonIgnore
+    var id: Id? = null
+        protected set
+    protected val notificationContext = NotificationContext(this::class.simpleName.toString())
+
+    init {
+        with(this::class.java) {
+            if (isAnnotationPresent(EntityModes::class.java)) {
+                getAnnotation(EntityModes::class.java).modes.forEach {
+                    when (it) {
+                        EntityMode.INSERT -> insertable = true
+                        EntityMode.UPDATE -> updatable = true
+                        EntityMode.DELETE -> deletable = true
+                        else -> {}
+                    }
+                }
+            } else {
+                throw Throwable("You must use the @EntityModes annotation.")
+            }
+            serviceRequired = isAnnotationPresent(EntityRequiresService::class.java)
+        }
+    }
 
     fun addFieldNameToChange(originalFieldName: String, newFieldName: String) {
         fieldNamesToChange.put(originalFieldName, newFieldName)
@@ -48,7 +66,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         this.fieldNamesToChange.putAll(fieldNamesToChange)
 
     suspend fun isValid(
-        transactionMode: TransactionMode,
+        entityMode: EntityMode,
         service: TService? = null,
         notificationContext: NotificationContext
     ): Boolean {
@@ -56,16 +74,16 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         if (service != null) {
             this.service = service
         }
-        when (transactionMode) {
-            TransactionMode.INSERT -> {
+        when (entityMode) {
+            EntityMode.INSERT -> {
                 validateToInsert()
             }
 
-            TransactionMode.UPDATE -> {
+            EntityMode.UPDATE -> {
                 validateToUpdate()
             }
 
-            TransactionMode.DELETE -> {
+            EntityMode.DELETE -> {
                 validateToDelete()
             }
 
@@ -109,13 +127,13 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
 
-    protected fun List<AggregateEntityValueObject<TEntity, TService>>.addToValidate(name: String) =
+    protected fun List<EntityAggregateValueObject<TEntity, TService>>.addToValidate(name: String) =
         forEach { aggregateEntityValueObject ->
-            validateAggregateEntityValueObjects.add(Pair(name, aggregateEntityValueObject))
+            validateEntityAggregateValueObjects.add(Pair(name, aggregateEntityValueObject))
         }
 
-    protected fun AggregateEntityValueObject<TEntity, TService>.addToValidate(name: String) =
-        validateAggregateEntityValueObjects.add(Pair(name, this))
+    protected fun EntityAggregateValueObject<TEntity, TService>.addToValidate(name: String) =
+        validateEntityAggregateValueObjects.add(Pair(name, this))
 
     protected fun addNotificationMessage(notificationMessage: NotificationMessage) {
         notificationContext.addNotification(notificationMessage)
@@ -182,7 +200,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private fun getService() = if (service == null) null else service as TService
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
     private suspend fun validateToInsert() {
-        transactionMode = TransactionMode.INSERT
+        entityMode = EntityMode.INSERT
         checkService()
         buildRules().executeInsertRules()
         runValidateValueObjects()
@@ -210,7 +228,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     private suspend fun validateToUpdate() {
-        transactionMode = TransactionMode.UPDATE
+        entityMode = EntityMode.UPDATE
         checkService()
         buildRules().executeUpdateRules()
         runValidateValueObjects()
@@ -236,7 +254,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     private suspend fun validateToDelete() {
-        transactionMode = TransactionMode.DELETE
+        entityMode = EntityMode.DELETE
         checkService()
         buildRules().executeDeleteRules()
         runValidateValueObjects()
@@ -303,8 +321,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     private suspend fun runValidateAggregateEntityValueObjects() {
-        validateAggregateEntityValueObjects.forEach {
-            it.second.isValid(getService(), transactionMode, it.first, notificationContext)
+        validateEntityAggregateValueObjects.forEach {
+            it.second.isValid(getService(), entityMode, it.first, notificationContext)
         }
     }
 
@@ -317,9 +335,9 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private fun startEntity() {
         events.clear()
         validateValueObjects.clear()
-        validateAggregateEntityValueObjects.clear()
+        validateEntityAggregateValueObjects.clear()
         notificationContext.clearNotifications()
-        transactionMode = TransactionMode.DISPLAY
+        entityMode = EntityMode.DISPLAY
         service = null
     }
 }

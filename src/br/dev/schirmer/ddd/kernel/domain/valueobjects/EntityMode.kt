@@ -2,7 +2,7 @@ package br.dev.schirmer.ddd.kernel.domain.valueobjects
 
 import br.dev.schirmer.ddd.kernel.domain.notifications.DomainNotification
 
-enum class TransactionMode(override val value: Int) : EnumValueObject<Int> {
+enum class EntityMode(override val value: Int) : EnumValueObject<Int> {
 	UNKNOWN(0),
 	DISPLAY(1),
 	INSERT(2),
