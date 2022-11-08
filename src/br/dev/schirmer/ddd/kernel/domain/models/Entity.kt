@@ -16,6 +16,7 @@ import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
+import kotlin.reflect.full.findAnnotation
 import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 
 @Suppress("UNCHECKED_CAST")
@@ -41,9 +42,12 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected val notificationContext = NotificationContext(this::class.simpleName.toString())
 
     init {
-        with(this::class.java) {
-            if (isAnnotationPresent(EntityModes::class.java)) {
-                getAnnotation(EntityModes::class.java).modes.forEach {
+        with(this::class) {
+            with(findAnnotation<EntityModes>()) {
+                if (this == null) {
+                    throw Throwable("You must use the @EntityModes annotation.")
+                }
+                modes.forEach {
                     when (it) {
                         EntityMode.INSERT -> insertable = true
                         EntityMode.UPDATE -> updatable = true
@@ -51,10 +55,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                         else -> {}
                     }
                 }
-            } else {
-                throw Throwable("You must use the @EntityModes annotation.")
             }
-            serviceRequired = isAnnotationPresent(EntityRequiresService::class.java)
+            serviceRequired = findAnnotation<EntityRequiresService>() != null
         }
     }
 
