@@ -43,17 +43,12 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     init {
         with(this::class) {
-            with(findAnnotation<EntityModes>()) {
-                if (this == null) {
-                    throw Throwable("You must use the @EntityModes annotation.")
-                }
-                modes.forEach {
-                    when (it) {
-                        EntityMode.INSERT -> insertable = true
-                        EntityMode.UPDATE -> updatable = true
-                        EntityMode.DELETE -> deletable = true
-                        else -> {}
-                    }
+            findAnnotation<EntityModes>()?.modes?.forEach {
+                when (it) {
+                    EntityMode.INSERT -> insertable = true
+                    EntityMode.UPDATE -> updatable = true
+                    EntityMode.DELETE -> deletable = true
+                    else -> {}
                 }
             }
             serviceRequired = findAnnotation<EntityRequiresService>() != null
