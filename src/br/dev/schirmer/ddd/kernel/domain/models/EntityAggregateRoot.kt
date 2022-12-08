@@ -19,7 +19,7 @@ abstract class EntityAggregateRoot<TEntity : Entity<TEntity, TService, TInsertab
             ?: aggregateItems[itemKey]!!) as List<AggregateItem<TEntity, TService, TAggregateEntityValueObject>>
     }
 
-    protected suspend inline fun <reified TAggregateEntityValueObject> aggregateConstructor(items: List<TAggregateEntityValueObject>?)
+    protected inline fun <reified TAggregateEntityValueObject> aggregateConstructor(items: List<TAggregateEntityValueObject>?)
             where TAggregateEntityValueObject : AggregateValueObject<TEntity, TService> {
         items?.forEach { item ->
             if (isAggregateItemValid(item)) {
@@ -131,7 +131,7 @@ abstract class EntityAggregateRoot<TEntity : Entity<TEntity, TService, TInsertab
         }
     }
 
-    protected suspend inline fun <reified TAggregateEntityValueObject> isAggregateItemValid(item: TAggregateEntityValueObject?): Boolean
+    protected inline fun <reified TAggregateEntityValueObject> isAggregateItemValid(item: TAggregateEntityValueObject?): Boolean
             where TAggregateEntityValueObject : AggregateValueObject<TEntity, TService> = if (item == null) {
         addNotificationMessage(
             NotificationMessage(
