@@ -153,20 +153,20 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         private var insertOrUpdate: suspend () -> Unit = { }
         private var commons: suspend () -> Unit = { }
         suspend fun executeInsertRules() {
+            commons()
             insertOrUpdate()
             insert()
-            commons()
         }
 
         suspend fun executeUpdateRules() {
+            commons()
             insertOrUpdate()
             update()
-            commons()
         }
 
         suspend fun executeDeleteRules() {
-            delete()
             commons()
+            delete()
         }
 
         companion object {
