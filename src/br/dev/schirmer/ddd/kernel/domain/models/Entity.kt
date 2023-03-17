@@ -2,6 +2,7 @@ package br.dev.schirmer.ddd.kernel.domain.models
 
 import br.dev.schirmer.ddd.kernel.domain.events.DomainEvent
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
+import br.dev.schirmer.ddd.kernel.domain.models.Entity.Rules.Companion.ifInsert
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateValueObject
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -35,6 +37,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private val events: MutableList<DomainEvent> = mutableListOf()
     private val notificationContextCollection: MutableList<NotificationContext> = mutableListOf()
     private val fieldNamesToChange: MutableMap<String, String> = mutableMapOf()
+    protected var entityState: String? = null
+    private set
 
     @JsonIgnore
     var id: Id? = null
@@ -145,6 +149,34 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     protected abstract fun buildRules(service: TService?): Rules
     protected fun rules(rules: Rules.() -> Unit): Rules = Rules().apply(rules)
+
+    protected fun saveState() { entityState = this.writeAsString() }
+
+    protected inline fun <reified Entity:TEntity> getLastStateSaved(addNotificationIfNull: Boolean = true): Entity? {
+        val addNotificatonAndReturnNull = { isError: Boolean ->
+            if (isError || addNotificationIfNull)
+                addNotificationMessage(
+                    NotificationMessage(
+                        funName = "getLastStateSaved",
+                        notification = UnableToRecoverLastState()
+                    )
+                )
+            null
+        }
+        return if (entityState != null) {
+            runCatching {
+                jacksonObjectMapper().apply {
+                    registerKotlinModule()
+                    registerModule(JavaTimeModule())
+                    setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
+                }.readValue(entityState, Entity::class.java)
+            }.getOrElse {
+                addNotificatonAndReturnNull(true)
+            }
+        } else {
+            addNotificatonAndReturnNull(false)
+        }
+    }
 
     protected class Rules {
         private var insert: suspend () -> Unit = { }
