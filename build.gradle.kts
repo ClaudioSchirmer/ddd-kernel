@@ -42,7 +42,7 @@ java {
 }
 
 group = "br.dev.schirmer"
-version = "5.3.1"
+version = "5.4.0"
 
 sourceSets.main {
 	java {

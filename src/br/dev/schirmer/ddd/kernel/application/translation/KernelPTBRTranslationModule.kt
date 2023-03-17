@@ -9,6 +9,7 @@ object KernelPTBRTranslationModule : TranslateModule {
         "UnableToUpdateWithoutIDNotification" to "Impossível efetuar a atualização do registro sem a chave primária.",
         "UnableToDeleteWithoutIDNotification" to "Impossível efetuar a exclusão do registro sem a chave primária.",
         "UnableToInsertWithIDNotification" to "Impossível efetuar a inclusão de um registro com a chave primária informada.",
+        "UnableToRecoverLastState" to "Impossível recuperar o último estado transacional da entidade.",
         "EntityAlreadyAddedNotification" to "Entidade já foi adicionada.",
         "EntityDoesNotExistNotification" to "Entidade não existe.",
         "InvalidTransactionModeNotification" to "Modo da transação é inválido.",
