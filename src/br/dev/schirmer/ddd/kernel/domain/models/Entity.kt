@@ -269,7 +269,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 NotificationMessage(
                     fieldName = ::updatable.name,
                     fieldValue = updatable.toString(),
-                    funName = "update.$actionName()",
+                    funName = "Update.$actionName()",
                     notification = UpdateNotAllowedNotification()
                 )
             )
