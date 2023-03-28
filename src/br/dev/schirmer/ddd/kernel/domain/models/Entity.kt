@@ -2,7 +2,6 @@ package br.dev.schirmer.ddd.kernel.domain.models
 
 import br.dev.schirmer.ddd.kernel.domain.events.DomainEvent
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
-import br.dev.schirmer.ddd.kernel.domain.models.Entity.Rules.Companion.ifInsert
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateValueObject
@@ -13,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -77,15 +75,15 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         }
         when (entityMode) {
             EntityMode.INSERT -> {
-                validateToInsert()
+                validateToInsert("getInsertable")
             }
 
             EntityMode.UPDATE -> {
-                validateToUpdate()
+                validateToUpdate("getUpdatable")
             }
 
             EntityMode.DELETE -> {
-                validateToDelete()
+                validateToDelete("getDeletable")
             }
 
             else -> {}
@@ -97,32 +95,36 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         return notificationContext.notifications.isNotEmpty()
     }
 
-    suspend fun getInsertable(service: TService? = null): SealedValidEntity.Insertable<TEntity, TInsertable> {
+    protected suspend fun getInsertable(actionName: String, service: TService? = null): SealedValidEntity.Insertable<TEntity, TInsertable> {
         startEntity()
         this.service = service
-        validateToInsert()
+        validateToInsert(actionName)
         checkNotifications()
-        return SealedValidEntity.Insertable(this::class.simpleName!!, id, getInsertable(), getDateTime(), events)
+        return SealedValidEntity.Insertable(this::class.simpleName!!, actionName, id, getValidEntityInsertable(), getDateTime(), events)
     }
 
-    suspend fun getUpdatable(service: TService? = null): SealedValidEntity.Updatable<TEntity, TUpdatable> {
+    protected suspend fun getUpdatable(actionName: String, service: TService? = null): SealedValidEntity.Updatable<TEntity, TUpdatable> {
         startEntity()
         this.service = service
-        validateToUpdate()
+        validateToUpdate(actionName)
         checkNotifications()
-        return SealedValidEntity.Updatable(this::class.simpleName!!, id!!, getUpdatable(), getDateTime(), events)
+        return SealedValidEntity.Updatable(this::class.simpleName!!, actionName, id!!, getValidEntityUpdatable(), getDateTime(), events)
     }
 
-    suspend fun getDeletable(service: TService? = null): SealedValidEntity.Deletable<TEntity> {
+    protected suspend fun getDeletable(actionName: String, service: TService? = null): SealedValidEntity.Deletable<TEntity> {
         startEntity()
         this.service = service
-        validateToDelete()
+        validateToDelete(actionName)
         checkNotifications()
-        return SealedValidEntity.Deletable(this::class.simpleName!!, id!!, this.writeAsString(), getDateTime(), events)
+        return SealedValidEntity.Deletable(this::class.simpleName!!, actionName, id!!, this.writeAsString(), getDateTime(), events)
     }
 
-    protected open fun getInsertable(): TInsertable = this as TInsertable
-    protected open fun getUpdatable(): TUpdatable = this as TUpdatable
+    suspend fun getInsertable(service: TService? = null) = getInsertable("getInsertable", service)
+    suspend fun getUpdatable(service: TService? = null) = getUpdatable("getUpdatable", service)
+    suspend fun getDeletable(service: TService? = null) = getDeletable("getDeletable", service)
+
+    protected open fun getValidEntityInsertable(): TInsertable = this as TInsertable
+    protected open fun getValidEntityUpdatable(): TUpdatable = this as TUpdatable
 
     protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> : SealedValidEntity<TEntity>
 
@@ -147,7 +149,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected fun DomainEvent.register() = events.add(this)
     protected fun registerEvent(domainEvent: DomainEvent) = events.add(domainEvent)
 
-    protected abstract fun buildRules(service: TService?): Rules
+    protected abstract fun buildRules(actionName: String, service: TService?): Rules
     protected fun rules(rules: Rules.() -> Unit): Rules = Rules().apply(rules)
 
     protected fun saveState() { entityState = this.writeAsString() }
@@ -224,14 +226,14 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         }
     }
 
-    private fun buildRules() = buildRules(getService())
+    private fun buildRules(actionName: String) = buildRules(actionName, getService())
 
     private fun getService() = if (service == null) null else service as TService
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
-    private suspend fun validateToInsert() {
+    private suspend fun validateToInsert(actionName: String) {
         entityMode = EntityMode.INSERT
         checkService()
-        buildRules().executeInsertRules()
+        buildRules(actionName).executeInsertRules()
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         if (!insertable) {
@@ -239,7 +241,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 NotificationMessage(
                     fieldName = ::insertable.name,
                     fieldValue = insertable.toString(),
-                    funName = "getInsertable",
+                    funName = "Insert.$actionName()",
                     notification = InsertNotAllowedNotification()
                 )
             )
@@ -249,17 +251,17 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 NotificationMessage(
                     fieldName = ::id.name,
                     fieldValue = id?.value,
-                    funName = "getInsertable",
+                    funName = "Insert.$actionName()",
                     notification = UnableToInsertWithIDNotification()
                 )
             )
         }
     }
 
-    private suspend fun validateToUpdate() {
+    private suspend fun validateToUpdate(actionName: String) {
         entityMode = EntityMode.UPDATE
         checkService()
-        buildRules().executeUpdateRules()
+        buildRules(actionName).executeUpdateRules()
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         if (!updatable) {
@@ -267,7 +269,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 NotificationMessage(
                     fieldName = ::updatable.name,
                     fieldValue = updatable.toString(),
-                    funName = "getUpdatable",
+                    funName = "update.$actionName()",
                     notification = UpdateNotAllowedNotification()
                 )
             )
@@ -276,16 +278,16 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             ?: addNotificationMessage(
                 NotificationMessage(
                     fieldName = ::id.name,
-                    funName = "getUpdatable",
+                    funName = "Update.$actionName()",
                     notification = UnableToUpdateWithoutIDNotification()
                 )
             )
     }
 
-    private suspend fun validateToDelete() {
+    private suspend fun validateToDelete(actionName: String) {
         entityMode = EntityMode.DELETE
         checkService()
-        buildRules().executeDeleteRules()
+        buildRules(actionName).executeDeleteRules()
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         if (!deletable) {
@@ -293,7 +295,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 NotificationMessage(
                     fieldName = ::deletable.name,
                     fieldValue = deletable.toString(),
-                    funName = ::getDeletable.name,
+                    funName = "Delete.$actionName()",
                     notification = DeleteNotAllowedNotification()
                 )
             )
@@ -302,7 +304,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             ?: addNotificationMessage(
                 NotificationMessage(
                     fieldName = ::id.name,
-                    funName = ::getDeletable.name,
+                    funName = "Delete.$actionName()",
                     notification = UnableToDeleteWithoutIDNotification()
                 )
             )

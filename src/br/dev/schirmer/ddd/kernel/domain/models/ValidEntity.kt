@@ -9,6 +9,8 @@ import java.time.ZonedDateTime
 sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
     class Insertable<TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>>(
         val entityName: String,
+        @JsonIgnore
+        val actionName: String,
         val id: Id?,
         val fieldsToInsert: TInsertable,
         val dateTime: ZonedDateTime,
@@ -18,6 +20,8 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
 
     class Updatable<TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>>(
         val entityName: String,
+        @JsonIgnore
+        val actionName: String,
         val id: Id,
         val fieldsToUpdate: TUpdatable,
         val dateTime: ZonedDateTime,
@@ -27,6 +31,8 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
 
     class Deletable<TEntity : Entity<TEntity, *, *, *>>(
         val entityName: String,
+        @JsonIgnore
+        val actionName: String,
         val id: Id,
         @JsonRawValue
         val deletedFields: String,
