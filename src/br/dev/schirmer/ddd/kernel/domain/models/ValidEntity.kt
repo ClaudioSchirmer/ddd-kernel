@@ -6,8 +6,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonRawValue
 import java.time.ZonedDateTime
 
-sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
-    class Insertable<TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>>(
+sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *, *>> {
+    class Insertable<TEntity : Entity<TEntity, *, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>>(
         val entityName: String,
         @JsonIgnore
         val actionName: String,
@@ -18,7 +18,7 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
         val events: List<DomainEvent>
     ) : ValidEntity<TEntity>
 
-    class Updatable<TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>>(
+    class Updatable<TEntity : Entity<TEntity, *, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>>(
         val entityName: String,
         @JsonIgnore
         val actionName: String,
@@ -29,7 +29,7 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
         val events: List<DomainEvent>
     ) : ValidEntity<TEntity>
 
-    class Deletable<TEntity : Entity<TEntity, *, *, *>>(
+    class Deletable<TEntity : Entity<TEntity, *, *, *, *>>(
         val entityName: String,
         @JsonIgnore
         val actionName: String,

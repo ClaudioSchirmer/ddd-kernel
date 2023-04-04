@@ -10,7 +10,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.slf4j.LoggerFactory
 import java.text.SimpleDateFormat
 
-inline fun <reified TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>> ValidEntity.Insertable<TEntity, TInsertable>.publish(
+inline fun <reified TEntity : Entity<TEntity, *, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>> ValidEntity.Insertable<TEntity, TInsertable>.publish(
     context: Context
 ) {
     jacksonObjectMapper().apply {
@@ -26,7 +26,7 @@ inline fun <reified TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : 
     this.events.publish(context)
 }
 
-inline fun <reified TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>> ValidEntity.Updatable<TEntity, TUpdatable>.publish(
+inline fun <reified TEntity : Entity<TEntity, *, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>> ValidEntity.Updatable<TEntity, TUpdatable>.publish(
     context: Context
 ) {
     jacksonObjectMapper().apply {
@@ -41,7 +41,7 @@ inline fun <reified TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : Va
     this.events.publish(context)
 }
 
-inline fun <reified TEntity : Entity<TEntity, *, *, *>> ValidEntity.Deletable<TEntity>.publish(
+inline fun <reified TEntity : Entity<TEntity, *, *, *, *>> ValidEntity.Deletable<TEntity>.publish(
     context: Context
 ) {
     jacksonObjectMapper().apply {
