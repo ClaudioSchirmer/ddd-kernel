@@ -44,6 +44,7 @@ object KernelPTBRTranslationModule : TranslateModule {
         "InvalidLanguageDomainNotification" to "Idioma não é válido.",
         "SQLExceptionNotification" to "Registro não pode ser incluído, alterado ou excluído.",
         "Pipeline" to "Fluxo de dados",
+        "ContextNotIniatializedNotification" to "Context não foi inicializado.",
 
         /* Kernel.application.enum */
         "Language.UNKNOWN" to "Desconhecido",
