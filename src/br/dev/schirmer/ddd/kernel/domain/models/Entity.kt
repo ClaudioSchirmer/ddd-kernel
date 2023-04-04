@@ -279,7 +279,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
     protected open suspend fun afterDelete(actionName: String, repository: TRepository, service: TService?) {}
     protected open suspend fun afterInsert(actionName: String, repository: TRepository, service: TService?) {}
 
-    protected inline fun <reified Entity : TEntity> getLastStateSaved(addNotificationIfNull: Boolean = true): Entity? {
+    protected inline fun <reified Entity : TEntity> getLastSavedState(addNotificationIfNull: Boolean = true): Entity? {
         val addNotificatonAndReturnNull = { isError: Boolean ->
             if (isError || addNotificationIfNull)
                 addNotificationMessage(
