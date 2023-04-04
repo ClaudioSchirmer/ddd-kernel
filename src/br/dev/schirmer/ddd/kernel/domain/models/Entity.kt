@@ -275,9 +275,9 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         entityState = this.writeAsString()
     }
 
-    protected open fun afterUpdate(actionName: String, repository: TRepository, service: TService?) {}
-    protected open fun afterDelete(actionName: String, repository: TRepository, service: TService?) {}
-    protected open fun afterInsert(actionName: String, repository: TRepository, service: TService?) {}
+    protected open suspend fun afterUpdate(actionName: String, repository: TRepository, service: TService?) {}
+    protected open suspend fun afterDelete(actionName: String, repository: TRepository, service: TService?) {}
+    protected open suspend fun afterInsert(actionName: String, repository: TRepository, service: TService?) {}
 
     protected inline fun <reified Entity : TEntity> getLastStateSaved(addNotificationIfNull: Boolean = true): Entity? {
         val addNotificatonAndReturnNull = { isError: Boolean ->
