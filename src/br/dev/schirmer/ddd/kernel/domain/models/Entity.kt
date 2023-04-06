@@ -20,9 +20,8 @@ import kotlin.reflect.full.findAnnotation
 import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 
 @Suppress("UNCHECKED_CAST")
-abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertable, TUpdatable>,
+abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>,
         TService : Service<TEntity>,
-        TRepository : Repository<TEntity>,
         TInsertable : SealedValidEntity<TEntity>,
         TUpdatable : SealedValidEntity<TEntity>>
     : SealedValidEntity<TEntity> {
@@ -114,41 +113,9 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         return notificationContext.notifications.isNotEmpty()
     }
 
-    suspend fun insert(repository: TRepository, service: TService? = null) =
-        insert(repository, "insert", service)
-
-    suspend fun update(repository: TRepository, service: TService? = null) =
-        update(repository, "update", service)
-
-    suspend fun delete(repository: TRepository, service: TService? = null) =
-        delete(repository, "delete", service)
-
-    protected suspend fun insert(
-        repository: TRepository,
-        actionName: String,
-        service: TService? = null,
-        callAfterInsert: Boolean = true
-    ) {
-        startEntity()
-        this.service = service
-        validateBeforeInsert(actionName)
-        checkNotifications()
-        val insertable = SealedValidEntity.Insertable(
-            signature!!,
-            this as TEntity,
-            this::class.simpleName!!,
-            actionName,
-            id,
-            getValidEntityInsertable(),
-            getDateTime(),
-            events
-        )
-        repository as InsertableRepository<TEntity, TInsertable>
-        id = repository.insert(insertable)
-        if (callAfterInsert)
-            afterInsert(actionName, repository, this.service)
-        repository.publish(insertable)
-    }
+    suspend fun getInsertable(service: TService? = null) = getInsertable("getInsertable", service)
+    suspend fun getUpdatable(service: TService? = null) = getUpdatable("getUpdatable", service)
+    suspend fun getDeletable(service: TService? = null) = getDeletable("getDeletable", service)
 
     protected suspend fun getInsertable(
         actionName: String,
@@ -170,33 +137,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         )
     }
 
-    protected suspend fun update(
-        repository: TRepository,
-        actionName: String,
-        service: TService? = null,
-        callAfterUpdate: Boolean = true
-    ) {
-        startEntity()
-        this.service = service
-        validateBeforeUpdate(actionName)
-        checkNotifications()
-        val updatable = SealedValidEntity.Updatable(
-            signature!!,
-            this as TEntity,
-            this::class.simpleName!!,
-            actionName,
-            id!!,
-            getValidEntityUpdatable(),
-            getDateTime(),
-            events
-        )
-        repository as UpdatableRepository<TEntity, TUpdatable>
-        repository.update(updatable)
-        if (callAfterUpdate)
-            afterUpdate(actionName, repository, this.service)
-        repository.publish(updatable)
-    }
-
     protected suspend fun getUpdatable(
         actionName: String,
         service: TService? = null
@@ -215,33 +155,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
             getDateTime(),
             events
         )
-    }
-
-    protected suspend fun delete(
-        repository: TRepository,
-        actionName: String,
-        service: TService? = null,
-        callAfterDelete: Boolean = true
-    ) {
-        startEntity()
-        this.service = service
-        validateBeforeDelete(actionName)
-        checkNotifications()
-        val deletable = SealedValidEntity.Deletable<TEntity>(
-            signature!!,
-            this as TEntity,
-            this::class.simpleName!!,
-            actionName,
-            id!!,
-            this.writeAsString(),
-            getDateTime(),
-            events
-        )
-        repository as DeletableRepository<TEntity>
-        repository.delete(deletable)
-        if (callAfterDelete)
-            afterDelete(actionName, repository, this.service)
-        repository.publish(deletable)
     }
 
     protected suspend fun getDeletable(
@@ -266,11 +179,9 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
 
     protected open suspend fun getValidEntityInsertable(): TInsertable = this as TInsertable
     protected open suspend fun getValidEntityUpdatable(): TUpdatable = this as TUpdatable
-
-    protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *, *>> : SealedValidEntity<TEntity>
+    protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> : SealedValidEntity<TEntity>
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
-
     protected fun List<AggregateValueObject<TEntity, TService>>.addToValidate(name: String) =
         forEach { aggregateEntityValueObject ->
             validateAggregateValueObjects.add(Pair(name, aggregateEntityValueObject))
@@ -300,9 +211,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
     protected open suspend fun beforeUpdate(actionName: String, service: TService?) {}
     protected open suspend fun beforeDelete(actionName: String, service: TService?) {}
     protected open suspend fun afterValidations(actionName: String, service: TService?) {}
-    protected open suspend fun afterInsert(actionName: String, repository: TRepository, service: TService?) {}
-    protected open suspend fun afterUpdate(actionName: String, repository: TRepository, service: TService?) {}
-    protected open suspend fun afterDelete(actionName: String, repository: TRepository, service: TService?) {}
 
     protected inline fun <reified Entity : TEntity> getLastSavedState(addNotificationIfNull: Boolean = true): Entity? {
         val addNotificatonAndReturnNull = { isError: Boolean ->

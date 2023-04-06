@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 val repositoryURL: String by project
 val repositoryUser: String by project

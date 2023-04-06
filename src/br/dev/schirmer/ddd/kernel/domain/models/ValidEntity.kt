@@ -5,10 +5,10 @@ import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonRawValue
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
-sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *, *>> {
-    class Insertable<TEntity : Entity<TEntity, *, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>>(
+sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
+    class Insertable<TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>>(
         entitySignature: UUID,
         entity: TEntity,
         val entityName: String,
@@ -25,7 +25,7 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *, *>> {
         }
     }
 
-    class Updatable<TEntity : Entity<TEntity, *, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>>(
+    class Updatable<TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>>(
         entitySignature: UUID,
         entity: TEntity,
         val entityName: String,
@@ -42,7 +42,7 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *, *>> {
         }
     }
 
-    class Deletable<TEntity : Entity<TEntity, *, *, *, *>>(
+    class Deletable<TEntity : Entity<TEntity, *, *, *>>(
         entitySignature: UUID,
         entity: TEntity,
         val entityName: String,
