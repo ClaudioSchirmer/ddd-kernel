@@ -20,6 +20,7 @@ object KernelPTBRTranslationModule : TranslateModule {
         "UpdateNotAllowedNotification" to "Atualização não permitida.",
         "DeleteNotAllowedNotification" to "Exclusão não permitida",
         "ServiceIsRequiredNotification" to "Serviço é obrigatório.",
+        "InvalidDomainSignatureNotification" to "Assinatura do domínio é inválida.",
 
         /* Kernel.domain.vo */
         "TransactionMode.UNKNOWN" to "Desconhecido",

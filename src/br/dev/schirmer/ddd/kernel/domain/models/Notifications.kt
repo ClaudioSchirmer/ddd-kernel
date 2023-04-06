@@ -13,6 +13,8 @@ class UpdateNotAllowedNotification : DomainNotification
 class DeleteNotAllowedNotification : DomainNotification
 class ServiceIsRequiredNotification : DomainNotification
 
+class InvalidDomainSignatureNotification : DomainNotification
+
 /*AGGREGATE ROOT*/
 class EntityAlreadyAddedNotification : DomainNotification
 class EntityDoesNotExistNotification : DomainNotification
