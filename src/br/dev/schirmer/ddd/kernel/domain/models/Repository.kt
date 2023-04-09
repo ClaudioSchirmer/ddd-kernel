@@ -53,7 +53,12 @@ abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>,
         unitOfWorkHandler(unitOfWork)
     }
 
-    suspend fun findById(id: Id): TEntity? = findDataById(id)
+    suspend fun findById(id: Id): TEntity? {
+        val unitOfWork = UnitOfWork {
+            findDataById(id)
+        }
+        return unitOfWorkHandler(unitOfWork)
+    }
 
     protected open suspend fun findDataById(id: Id): TEntity? {
         notify(::findDataById.name)

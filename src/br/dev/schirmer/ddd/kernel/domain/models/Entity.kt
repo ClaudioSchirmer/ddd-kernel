@@ -93,15 +93,15 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         }
         when (entityMode) {
             EntityMode.INSERT -> {
-                validateBeforeInsert("insert")
+                validateToInsert("insert")
             }
 
             EntityMode.UPDATE -> {
-                validateBeforeUpdate("update")
+                validateToUpdate("update")
             }
 
             EntityMode.DELETE -> {
-                validateBeforeDelete("delete")
+                validateToDelete("delete")
             }
 
             else -> {}
@@ -123,7 +123,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     ): SealedValidEntity.Insertable<TEntity, TInsertable> {
         startEntity()
         this.service = service
-        validateBeforeInsert(actionName)
+        validateToInsert(actionName)
         checkNotifications()
         return SealedValidEntity.Insertable(
             signature!!,
@@ -143,7 +143,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     ): SealedValidEntity.Updatable<TEntity, TUpdatable> {
         startEntity()
         this.service = service
-        validateBeforeUpdate(actionName)
+        validateToUpdate(actionName)
         checkNotifications()
         return SealedValidEntity.Updatable(
             signature!!,
@@ -163,7 +163,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     ): SealedValidEntity.Deletable<TEntity> {
         startEntity()
         this.service = service
-        validateBeforeDelete(actionName)
+        validateToDelete(actionName)
         checkNotifications()
         return SealedValidEntity.Deletable<TEntity>(
             signature!!,
@@ -206,10 +206,10 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     protected open suspend fun beforeValidations(actionName: String, service: TService?) {}
-    protected open suspend fun beforeInsertOrUpdate(actionName: String, service: TService?) {}
-    protected open suspend fun beforeInsert(actionName: String, service: TService?) {}
-    protected open suspend fun beforeUpdate(actionName: String, service: TService?) {}
-    protected open suspend fun beforeDelete(actionName: String, service: TService?) {}
+    protected open suspend fun ifInsertOrUpdate(actionName: String, service: TService?) {}
+    protected open suspend fun ifInsert(actionName: String, service: TService?) {}
+    protected open suspend fun ifUpdate(actionName: String, service: TService?) {}
+    protected open suspend fun ifDelete(actionName: String, service: TService?) {}
     protected open suspend fun afterValidations(actionName: String, service: TService?) {}
 
     protected inline fun <reified Entity : TEntity> getLastSavedState(addNotificationIfNull: Boolean = true): Entity? {
@@ -250,7 +250,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
 
     private fun getService() = if (service == null) null else service as TService
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
-    private suspend fun validateBeforeInsert(actionName: String) {
+    private suspend fun validateToInsert(actionName: String) {
         entityMode = EntityMode.INSERT
         beforeValidations(actionName, this.service)
         checkService()
@@ -274,14 +274,14 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 )
             )
         }
-        beforeInsertOrUpdate(actionName, this.service)
-        beforeInsert(actionName, this.service)
+        ifInsertOrUpdate(actionName, this.service)
+        ifInsert(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         afterValidations(actionName, this.service)
     }
 
-    private suspend fun validateBeforeUpdate(actionName: String) {
+    private suspend fun validateToUpdate(actionName: String) {
         entityMode = EntityMode.UPDATE
         beforeValidations(actionName, this.service)
         checkService()
@@ -303,14 +303,14 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                     notification = UnableToUpdateWithoutIDNotification()
                 )
             )
-        beforeInsertOrUpdate(actionName, this.service)
-        beforeUpdate(actionName, this.service)
+        ifInsertOrUpdate(actionName, this.service)
+        ifUpdate(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         afterValidations(actionName, this.service)
     }
 
-    private suspend fun validateBeforeDelete(actionName: String) {
+    private suspend fun validateToDelete(actionName: String) {
         entityMode = EntityMode.DELETE
         beforeValidations(actionName, this.service)
         checkService()
@@ -332,7 +332,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                     notification = UnableToDeleteWithoutIDNotification()
                 )
             )
-        beforeDelete(actionName, this.service)
+        ifDelete(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
         afterValidations(actionName, this.service)
