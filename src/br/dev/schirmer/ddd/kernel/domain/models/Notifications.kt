@@ -18,3 +18,6 @@ class InvalidDomainSignatureNotification : DomainNotification
 /*AGGREGATE ROOT*/
 class EntityAlreadyAddedNotification : DomainNotification
 class EntityDoesNotExistNotification : DomainNotification
+
+/*REPOSITORY*/
+class RepositoryFunctionNotImplementedNotification : DomainNotification
