@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 val repositoryURL: String by project
 val repositoryUser: String by project
@@ -42,7 +41,7 @@ java {
 }
 
 group = "br.dev.schirmer"
-version = "9.2.0"
+version = "10.2.0"
 
 sourceSets.main {
 	java {

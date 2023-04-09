@@ -15,17 +15,18 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.*
 import kotlin.reflect.full.findAnnotation
 import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity as SealedValidEntity
 
 @Suppress("UNCHECKED_CAST")
-abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertable, TUpdatable>,
+abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>,
         TService : Service<TEntity>,
-        TRepository : Repository<TEntity>,
         TInsertable : SealedValidEntity<TEntity>,
         TUpdatable : SealedValidEntity<TEntity>>
     : SealedValidEntity<TEntity> {
 
+    private var signature: UUID? = null
     private var insertable: Boolean = false
     private var updatable: Boolean = false
     private var deletable: Boolean = false
@@ -67,6 +68,20 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
     fun addFieldNamesToChange(fieldNamesToChange: Map<String, String>) =
         this.fieldNamesToChange.putAll(fieldNamesToChange)
 
+    fun checkSignature(signature: UUID) {
+        if (signature != this.signature) {
+            addNotificationMessage(
+                NotificationMessage(
+                    fieldName = "signature",
+                    fieldValue = signature.toString(),
+                    funName = ::checkSignature.name,
+                    notification = InvalidDomainSignatureNotification()
+                )
+            )
+            checkNotifications()
+        }
+    }
+
     suspend fun isValid(
         entityMode: EntityMode,
         service: TService? = null,
@@ -78,15 +93,15 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         }
         when (entityMode) {
             EntityMode.INSERT -> {
-                validateBeforeInsert(buildRules("insert"), "insert")
+                validateToInsert("insert")
             }
 
             EntityMode.UPDATE -> {
-                validateBeforeUpdate(buildRules("update"), "update")
+                validateToUpdate("update")
             }
 
             EntityMode.DELETE -> {
-                validateBeforeDelete(buildRules("delete"), "delete")
+                validateToDelete("delete")
             }
 
             else -> {}
@@ -98,51 +113,21 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         return notificationContext.notifications.isNotEmpty()
     }
 
-    suspend fun insert(repository: TRepository, service: TService? = null) =
-        insert(repository, "insert", service)
-
-    suspend fun update(repository: TRepository, service: TService? = null) =
-        update(repository, "update", service)
-
-    suspend fun delete(repository: TRepository, service: TService? = null) =
-        delete(repository, "delete", service)
-
-    protected suspend fun insert(
-        repository: TRepository,
-        actionName: String,
-        service: TService? = null,
-        callAfterInsert: Boolean = true
-    ) {
-        val rules = buildRules(actionName)
-        startEntity()
-        this.service = service
-        validateBeforeInsert(rules, actionName)
-        checkNotifications()
-        val insertable = SealedValidEntity.Insertable(
-            this::class.simpleName!!,
-            actionName,
-            id,
-            getValidEntityInsertable(),
-            getDateTime(),
-            events
-        )
-        repository as InsertableRepository<TEntity, TInsertable>
-        id = repository.insert(insertable)
-        if (callAfterInsert)
-            afterInsert(actionName, repository, this.service)
-        repository.publish(insertable)
-    }
+    suspend fun getInsertable(service: TService? = null) = getInsertable("getInsertable", service)
+    suspend fun getUpdatable(service: TService? = null) = getUpdatable("getUpdatable", service)
+    suspend fun getDeletable(service: TService? = null) = getDeletable("getDeletable", service)
 
     protected suspend fun getInsertable(
         actionName: String,
         service: TService? = null
     ): SealedValidEntity.Insertable<TEntity, TInsertable> {
-        val rules = buildRules(actionName)
         startEntity()
         this.service = service
-        validateBeforeInsert(rules, actionName)
+        validateToInsert(actionName)
         checkNotifications()
         return SealedValidEntity.Insertable(
+            signature!!,
+            this as TEntity,
             this::class.simpleName!!,
             actionName,
             id,
@@ -150,44 +135,19 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
             getDateTime(),
             events
         )
-    }
-
-    protected suspend fun update(
-        repository: TRepository,
-        actionName: String,
-        service: TService? = null,
-        callAfterUpdate: Boolean = true
-    ) {
-        val rules = buildRules(actionName)
-        startEntity()
-        this.service = service
-        validateBeforeUpdate(rules, actionName)
-        checkNotifications()
-        val updatable = SealedValidEntity.Updatable(
-            this::class.simpleName!!,
-            actionName,
-            id!!,
-            getValidEntityUpdatable(),
-            getDateTime(),
-            events
-        )
-        repository as UpdatableRepository<TEntity, TUpdatable>
-        repository.update(updatable)
-        if (callAfterUpdate)
-            afterUpdate(actionName, repository, this.service)
-        repository.publish(updatable)
     }
 
     protected suspend fun getUpdatable(
         actionName: String,
         service: TService? = null
     ): SealedValidEntity.Updatable<TEntity, TUpdatable> {
-        val rules = buildRules(actionName)
         startEntity()
         this.service = service
-        validateBeforeUpdate(rules, actionName)
+        validateToUpdate(actionName)
         checkNotifications()
         return SealedValidEntity.Updatable(
+            signature!!,
+            this as TEntity,
             this::class.simpleName!!,
             actionName,
             id!!,
@@ -197,42 +157,17 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         )
     }
 
-    protected suspend fun delete(
-        repository: TRepository,
-        actionName: String,
-        service: TService? = null,
-        callAfterDelete: Boolean = true
-    ) {
-        val rules = buildRules(actionName)
-        startEntity()
-        this.service = service
-        validateBeforeDelete(rules, actionName)
-        checkNotifications()
-        val deletable = SealedValidEntity.Deletable<TEntity>(
-            this::class.simpleName!!,
-            actionName,
-            id!!,
-            this.writeAsString(),
-            getDateTime(),
-            events
-        )
-        repository as DeletableRepository<TEntity>
-        repository.delete(deletable)
-        if (callAfterDelete)
-            afterDelete(actionName, repository, this.service)
-        repository.publish(deletable)
-    }
-
     protected suspend fun getDeletable(
         actionName: String,
         service: TService? = null
     ): SealedValidEntity.Deletable<TEntity> {
-        val rules = buildRules(actionName)
         startEntity()
         this.service = service
-        validateBeforeDelete(rules, actionName)
+        validateToDelete(actionName)
         checkNotifications()
         return SealedValidEntity.Deletable<TEntity>(
+            signature!!,
+            this as TEntity,
             this::class.simpleName!!,
             actionName,
             id!!,
@@ -242,13 +177,11 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         )
     }
 
-    protected open fun getValidEntityInsertable(): TInsertable = this as TInsertable
-    protected open fun getValidEntityUpdatable(): TUpdatable = this as TUpdatable
-
-    protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *, *>> : SealedValidEntity<TEntity>
+    protected open suspend fun getValidEntityInsertable(): TInsertable = this as TInsertable
+    protected open suspend fun getValidEntityUpdatable(): TUpdatable = this as TUpdatable
+    protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> : SealedValidEntity<TEntity>
 
     protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
-
     protected fun List<AggregateValueObject<TEntity, TService>>.addToValidate(name: String) =
         forEach { aggregateEntityValueObject ->
             validateAggregateValueObjects.add(Pair(name, aggregateEntityValueObject))
@@ -268,16 +201,16 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
     protected fun DomainEvent.register() = events.add(this)
     protected fun registerEvent(domainEvent: DomainEvent) = events.add(domainEvent)
 
-    protected abstract fun buildRules(actionName: String, service: TService?): Rules
-    protected fun rules(rules: Rules.() -> Unit): Rules = Rules().apply(rules)
-
     protected fun saveState() {
         entityState = this.writeAsString()
     }
 
-    protected open suspend fun afterUpdate(actionName: String, repository: TRepository, service: TService?) {}
-    protected open suspend fun afterDelete(actionName: String, repository: TRepository, service: TService?) {}
-    protected open suspend fun afterInsert(actionName: String, repository: TRepository, service: TService?) {}
+    protected open suspend fun beforeValidations(actionName: String, service: TService?) {}
+    protected open suspend fun ifInsertOrUpdate(actionName: String, service: TService?) {}
+    protected open suspend fun ifInsert(actionName: String, service: TService?) {}
+    protected open suspend fun ifUpdate(actionName: String, service: TService?) {}
+    protected open suspend fun ifDelete(actionName: String, service: TService?) {}
+    protected open suspend fun afterValidations(actionName: String, service: TService?) {}
 
     protected inline fun <reified Entity : TEntity> getLastSavedState(addNotificationIfNull: Boolean = true): Entity? {
         val addNotificatonAndReturnNull = { isError: Boolean ->
@@ -315,62 +248,12 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         }
     }
 
-    protected class Rules {
-        private var insertRules: suspend () -> Unit = { }
-        private var updateRules: suspend () -> Unit = { }
-        private var deleteRules: suspend () -> Unit = { }
-        private var insertOrUpdateRules: suspend () -> Unit = { }
-        private var commonsRules: suspend () -> Unit = { }
-        suspend fun executeInsertRulesBeforeInsert() {
-            commonsRules()
-            insertOrUpdateRules()
-            insertRules()
-        }
-
-        suspend fun executeUpdateRulesBeforeUpdate() {
-            commonsRules()
-            insertOrUpdateRules()
-            updateRules()
-        }
-
-        suspend fun executeDeleteRulesBeforeDelete() {
-            commonsRules()
-            deleteRules()
-        }
-
-        companion object {
-            fun Rules.ifInsert(rules: suspend () -> Unit) {
-                insertRules = rules
-            }
-
-            fun Rules.ifUpdate(rules: suspend () -> Unit) {
-                updateRules = rules
-            }
-
-            fun Rules.ifDelete(rules: suspend () -> Unit) {
-                deleteRules = rules
-            }
-
-            fun Rules.ifInsertOrUpdate(rules: suspend () -> Unit) {
-                insertOrUpdateRules = rules
-            }
-
-            fun Rules.commons(rules: suspend () -> Unit) {
-                commonsRules = rules
-            }
-        }
-    }
-
-    private fun buildRules(actionName: String) = buildRules(actionName, getService())
-
     private fun getService() = if (service == null) null else service as TService
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
-    private suspend fun validateBeforeInsert(rules: Rules, actionName: String) {
+    private suspend fun validateToInsert(actionName: String) {
         entityMode = EntityMode.INSERT
+        beforeValidations(actionName, this.service)
         checkService()
-        rules.executeInsertRulesBeforeInsert()
-        runValidateValueObjects()
-        runValidateAggregateEntityValueObjects()
         if (!insertable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -391,14 +274,17 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
                 )
             )
         }
-    }
-
-    private suspend fun validateBeforeUpdate(rules: Rules, actionName: String) {
-        entityMode = EntityMode.UPDATE
-        checkService()
-        rules.executeUpdateRulesBeforeUpdate()
+        ifInsertOrUpdate(actionName, this.service)
+        ifInsert(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
+        afterValidations(actionName, this.service)
+    }
+
+    private suspend fun validateToUpdate(actionName: String) {
+        entityMode = EntityMode.UPDATE
+        beforeValidations(actionName, this.service)
+        checkService()
         if (!updatable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -417,14 +303,17 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
                     notification = UnableToUpdateWithoutIDNotification()
                 )
             )
-    }
-
-    private suspend fun validateBeforeDelete(rules: Rules, actionName: String) {
-        entityMode = EntityMode.DELETE
-        checkService()
-        rules.executeDeleteRulesBeforeDelete()
+        ifInsertOrUpdate(actionName, this.service)
+        ifUpdate(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
+        afterValidations(actionName, this.service)
+    }
+
+    private suspend fun validateToDelete(actionName: String) {
+        entityMode = EntityMode.DELETE
+        beforeValidations(actionName, this.service)
+        checkService()
         if (!deletable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -443,6 +332,10 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
                     notification = UnableToDeleteWithoutIDNotification()
                 )
             )
+        ifDelete(actionName, this.service)
+        runValidateValueObjects()
+        runValidateAggregateEntityValueObjects()
+        afterValidations(actionName, this.service)
     }
 
     private fun changeFieldNames() {
@@ -495,5 +388,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TRepository, TInsertab
         notificationContext.clearNotifications()
         entityMode = EntityMode.DISPLAY
         service = null
+        signature = UUID.randomUUID()
     }
 }

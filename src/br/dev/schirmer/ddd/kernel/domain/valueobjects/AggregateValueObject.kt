@@ -4,7 +4,7 @@ import br.dev.schirmer.ddd.kernel.domain.models.Entity
 import br.dev.schirmer.ddd.kernel.domain.models.Service
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 
-interface AggregateValueObject<TSuperEntity : Entity<TSuperEntity, TSuperService, *, *, *>, TSuperService : Service<TSuperEntity>> {
+interface AggregateValueObject<TSuperEntity : Entity<TSuperEntity, TSuperService, *, *>, TSuperService : Service<TSuperEntity>> {
     suspend fun isValid(
         service: TSuperService? = null,
         entityMode: EntityMode,
