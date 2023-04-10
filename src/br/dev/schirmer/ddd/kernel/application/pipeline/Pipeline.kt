@@ -1,6 +1,6 @@
 package br.dev.schirmer.ddd.kernel.application.pipeline
 
-import br.dev.schirmer.ddd.kernel.application.configuration.Context
+import br.dev.schirmer.ddd.kernel.application.configuration.AppContext
 import br.dev.schirmer.ddd.kernel.application.exception.ApplicationNotificationContextException
 import br.dev.schirmer.ddd.kernel.application.translation.toNotificationContextDTO
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
@@ -16,19 +16,19 @@ import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import java.sql.SQLException
 
-class Pipeline(val diAware: DIAware, var context: Context? = null) {
+class Pipeline(val diAware: DIAware, var appContext: AppContext? = null) {
     suspend inline fun <TResult, TQuery : Query<TResult>, reified TQueryHandler : Handler<TResult, TQuery>> dispatch(
         query: TQuery,
-        context: Context? = null
+        appContext: AppContext? = null
     ): Result<TResult> {
-        checkContext(query::class.simpleName!!, context)?.let {
+        checkContext(query::class.simpleName!!, appContext)?.let {
             return it
         }
-        val queryHandler: TQueryHandler by diAware.di.instance(arg = context ?: this.context!!)
+        val queryHandler: TQueryHandler by diAware.di.instance(arg = appContext ?: this.appContext!!)
         return tryExecute {
             Result.Success(
                 queryHandler.apply {
-                    setContext(context ?: this@Pipeline.context!!)
+                    setContext(appContext ?: this@Pipeline.appContext!!)
                 }.invoke(query)
             )
         }
@@ -36,25 +36,25 @@ class Pipeline(val diAware: DIAware, var context: Context? = null) {
 
     suspend inline fun <TResult, TCommand : Command<TResult>, reified TCommandHandler : List<Handler<TResult, TCommand>>> dispatch(
         command: TCommand,
-        context: Context? = null
+        appContext: AppContext? = null
     ): List<Result<TResult>> {
-        checkContext(command::class.simpleName!!, context)?.let {
+        checkContext(command::class.simpleName!!, appContext)?.let {
             return listOf(it)
         }
-        val commandHandlers: TCommandHandler by diAware.di.instance(arg = context ?: this.context!!)
+        val commandHandlers: TCommandHandler by diAware.di.instance(arg = appContext ?: this.appContext!!)
         return commandHandlers.map { commandHandler ->
             tryExecute {
                 Result.Success(
                     commandHandler.apply {
-                        setContext(context ?: this@Pipeline.context!!)
+                        setContext(appContext ?: this@Pipeline.appContext!!)
                     }.invoke(command)
                 )
             }
         }
     }
 
-    suspend fun checkContext(handlerName: String, context: Context? = null): Result.Failure? {
-        if (this.context == null && context == null) {
+    suspend fun checkContext(handlerName: String, appContext: AppContext? = null): Result.Failure? {
+        if (this.appContext == null && appContext == null) {
             NotificationContext(this::class.simpleName.toString()).apply {
                 addNotification(
                     NotificationMessage(
@@ -111,11 +111,11 @@ class Pipeline(val diAware: DIAware, var context: Context? = null) {
         launch(Job()) {
             with(LoggerFactory.getLogger(this@Pipeline::class.java)) {
                 when (level) {
-                    Level.DEBUG -> debug("{\"threadId\":\"${context?.id}\",\"data\":\"$text\"}")
-                    Level.ERROR -> error("{\"threadId\":\"${context?.id}\",\"data\":\"$text\"}")
-                    Level.INFO -> info("{\"threadId\":\"${context?.id}\",\"data\":\"$text\"}")
-                    Level.TRACE -> trace("{\"threadId\":\"${context?.id}\",\"data\":\"$text\"}")
-                    Level.WARN -> warn("{\"threadId\":\"${context?.id}\",\"data\":\"$text\"}")
+                    Level.DEBUG -> debug("{\"threadId\":\"${appContext?.id}\",\"data\":\"$text\"}")
+                    Level.ERROR -> error("{\"threadId\":\"${appContext?.id}\",\"data\":\"$text\"}")
+                    Level.INFO -> info("{\"threadId\":\"${appContext?.id}\",\"data\":\"$text\"}")
+                    Level.TRACE -> trace("{\"threadId\":\"${appContext?.id}\",\"data\":\"$text\"}")
+                    Level.WARN -> warn("{\"threadId\":\"${appContext?.id}\",\"data\":\"$text\"}")
                 }
             }
         }

@@ -1,7 +1,7 @@
 package br.dev.schirmer.ddd.kernel.infrastructure.events
 
-import br.dev.schirmer.ddd.kernel.application.configuration.Context
 import br.dev.schirmer.ddd.kernel.domain.events.Event
+import br.dev.schirmer.ddd.kernel.domain.models.Context
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
