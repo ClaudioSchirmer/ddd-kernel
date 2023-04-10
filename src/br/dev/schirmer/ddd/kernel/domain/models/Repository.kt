@@ -5,7 +5,7 @@ import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 
-abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>> {
+abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>(val context: Context) {
 
     private val notificationContext = NotificationContext(this::class.simpleName.toString())
     protected abstract suspend fun <T> workUnitHandler(workUnit: workUnit<T>) : T

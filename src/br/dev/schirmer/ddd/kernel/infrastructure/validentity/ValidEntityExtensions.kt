@@ -1,6 +1,7 @@
 package br.dev.schirmer.ddd.kernel.infrastructure.validentity
 
-import br.dev.schirmer.ddd.kernel.application.configuration.Context
+
+import br.dev.schirmer.ddd.kernel.domain.models.Context
 import br.dev.schirmer.ddd.kernel.domain.models.Entity
 import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity
 import br.dev.schirmer.ddd.kernel.infrastructure.events.publish
