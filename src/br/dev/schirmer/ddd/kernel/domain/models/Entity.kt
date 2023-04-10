@@ -205,12 +205,12 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         entityState = this.writeAsString()
     }
 
-    protected open suspend fun beforeValidations(actionName: String, service: TService?) {}
-    protected open suspend fun ifInsertOrUpdate(actionName: String, service: TService?) {}
-    protected open suspend fun ifInsert(actionName: String, service: TService?) {}
-    protected open suspend fun ifUpdate(actionName: String, service: TService?) {}
-    protected open suspend fun ifDelete(actionName: String, service: TService?) {}
-    protected open suspend fun afterValidations(actionName: String, service: TService?) {}
+    protected open suspend fun buildCommonRules(actionName: String, service: TService?) {}
+    protected open suspend fun buildInsertableOrUpdatableRules(actionName: String, service: TService?) {}
+    protected open suspend fun buildInsertableRules(actionName: String, service: TService?) {}
+    protected open suspend fun buildUpdatableRules(actionName: String, service: TService?) {}
+    protected open suspend fun buildDeletableRules(actionName: String, service: TService?) {}
+    protected open suspend fun beforeCreateValidEntity(actionName: String, service: TService?) {}
 
     protected inline fun <reified Entity : TEntity> getLastSavedState(addNotificationIfNull: Boolean = true): Entity? {
         val addNotificatonAndReturnNull = { isError: Boolean ->
@@ -252,7 +252,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
     private suspend fun validateToInsert(actionName: String) {
         entityMode = EntityMode.INSERT
-        beforeValidations(actionName, this.service)
+        buildCommonRules(actionName, this.service)
         checkService()
         if (!insertable) {
             addNotificationMessage(
@@ -274,16 +274,16 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 )
             )
         }
-        ifInsertOrUpdate(actionName, this.service)
-        ifInsert(actionName, this.service)
+        buildInsertableOrUpdatableRules(actionName, this.service)
+        buildInsertableRules(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
-        afterValidations(actionName, this.service)
+        beforeCreateValidEntity(actionName, this.service)
     }
 
     private suspend fun validateToUpdate(actionName: String) {
         entityMode = EntityMode.UPDATE
-        beforeValidations(actionName, this.service)
+        buildCommonRules(actionName, this.service)
         checkService()
         if (!updatable) {
             addNotificationMessage(
@@ -303,16 +303,16 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                     notification = UnableToUpdateWithoutIDNotification()
                 )
             )
-        ifInsertOrUpdate(actionName, this.service)
-        ifUpdate(actionName, this.service)
+        buildInsertableOrUpdatableRules(actionName, this.service)
+        buildUpdatableRules(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
-        afterValidations(actionName, this.service)
+        beforeCreateValidEntity(actionName, this.service)
     }
 
     private suspend fun validateToDelete(actionName: String) {
         entityMode = EntityMode.DELETE
-        beforeValidations(actionName, this.service)
+        buildCommonRules(actionName, this.service)
         checkService()
         if (!deletable) {
             addNotificationMessage(
@@ -332,10 +332,10 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                     notification = UnableToDeleteWithoutIDNotification()
                 )
             )
-        ifDelete(actionName, this.service)
+        buildDeletableRules(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
-        afterValidations(actionName, this.service)
+        beforeCreateValidEntity(actionName, this.service)
     }
 
     private fun changeFieldNames() {
