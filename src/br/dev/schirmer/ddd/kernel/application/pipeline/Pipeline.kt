@@ -29,9 +29,7 @@ class Pipeline(val diAware: DIAware, var context: Context? = null) {
             Result.Success(
                 queryHandler.apply {
                     setContext(context ?: this@Pipeline.context!!)
-                }.invoke(
-                    query
-                )
+                }.invoke(query)
             )
         }
     }
