@@ -1,17 +1,16 @@
 package br.dev.schirmer.ddd.kernel.domain.models
 
-import br.dev.schirmer.ddd.kernel.application.configuration.AppContext
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
-import kotlinx.coroutines.runBlocking
-import java.util.UUID
 
-abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>(val context: Context) {
+abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>(
+    val context: Context
+) {
 
     private val notificationContext = NotificationContext(this::class.simpleName.toString())
-    protected abstract suspend fun <T> workUnitHandler(workUnit: workUnit<T>) : T
+    protected abstract suspend fun <T> workUnitHandler(workUnit: workUnit<T>): T
 
     suspend fun insert(
         insertable: ValidEntity.Insertable<TEntity, TInsertable>,
@@ -75,7 +74,10 @@ abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>,
         throw Exception()
     }
 
-    protected open suspend fun insert(insertable: ValidEntity.Insertable<TEntity, TInsertable>, beforeInsertResult: Any?): Id {
+    protected open suspend fun insert(
+        insertable: ValidEntity.Insertable<TEntity, TInsertable>,
+        beforeInsertResult: Any?
+    ): Id {
         notify("insert")
         throw Exception()
     }
