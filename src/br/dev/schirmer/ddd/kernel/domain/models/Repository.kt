@@ -8,21 +8,21 @@ import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>> {
 
     private val notificationContext = NotificationContext(this::class.simpleName.toString())
-    protected abstract suspend fun <T> unitOfWorkHandler(unitOfWork: UnitOfWork<T>) : T
+    protected abstract suspend fun <T> workUnitHandler(workUnit: workUnit<T>) : T
 
     suspend fun insert(
         insertable: ValidEntity.Insertable<TEntity, TInsertable>,
         beforeInsert: (suspend () -> Unit)? = null,
         afterInsert: (suspend (Id) -> Unit)? = null
     ): Id {
-        val unitOfWork = UnitOfWork {
+        val workUnit = workUnit {
             beforeInsert?.invoke()
-            val id = insertData(insertable)
+            val id = insert(insertable)
             afterInsert?.invoke(id)
             publish(insertable)
             id
         }
-        return unitOfWorkHandler(unitOfWork)
+        return workUnitHandler(workUnit)
     }
 
     suspend fun update(
@@ -30,13 +30,13 @@ abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>,
         beforeUpdate: (suspend () -> Unit)? = null,
         afterUpdate: (suspend () -> Unit)? = null
     ) {
-        val unitOfWork = UnitOfWork {
+        val workUnit = workUnit {
             beforeUpdate?.invoke()
-            updateData(updatable)
+            update(updatable)
             afterUpdate?.invoke()
             publish(updatable)
         }
-        unitOfWorkHandler(unitOfWork)
+        workUnitHandler(workUnit)
     }
 
     suspend fun delete(
@@ -44,38 +44,45 @@ abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>,
         beforeDelete: (suspend () -> Unit)? = null,
         afterDelete: (suspend () -> Unit)? = null
     ) {
-        val unitOfWork = UnitOfWork {
+        val workUnit = workUnit {
             beforeDelete?.invoke()
-            deleteData(deletable)
+            delete(deletable)
             afterDelete?.invoke()
             publish(deletable)
         }
-        unitOfWorkHandler(unitOfWork)
+        workUnitHandler(workUnit)
     }
 
-    suspend fun findById(id: Id): TEntity? {
-        val unitOfWork = UnitOfWork {
-            findDataById(id)
+    suspend fun findById(
+        id: Id,
+        beforeFindById: (suspend () -> Unit)? = null,
+        afterFindById: (suspend () -> Unit)? = null
+    ): TEntity? {
+        val workUnit = workUnit {
+            beforeFindById?.invoke()
+            val entity = findById(id)
+            afterFindById?.invoke()
+            entity
         }
-        return unitOfWorkHandler(unitOfWork)
+        return workUnitHandler(workUnit)
     }
 
-    protected open suspend fun findDataById(id: Id): TEntity? {
-        notify(::findDataById.name)
+    protected open suspend fun findById(id: Id): TEntity? {
+        notify("findById")
         throw Exception()
     }
 
-    protected open suspend fun insertData(insertable: ValidEntity.Insertable<TEntity, TInsertable>): Id {
-        notify(::insertData.name)
+    protected open suspend fun insert(insertable: ValidEntity.Insertable<TEntity, TInsertable>): Id {
+        notify("insert")
         throw Exception()
     }
 
-    protected open suspend fun updateData(updatable: ValidEntity.Updatable<TEntity, TUpdatable>) {
-        notify(::updateData.name)
+    protected open suspend fun update(updatable: ValidEntity.Updatable<TEntity, TUpdatable>) {
+        notify("update")
     }
 
-    protected open suspend fun deleteData(deletable: ValidEntity.Deletable<TEntity>) {
-        notify(::deleteData.name)
+    protected open suspend fun delete(deletable: ValidEntity.Deletable<TEntity>) {
+        notify("delete")
     }
 
     protected open suspend fun publish(insertable: ValidEntity.Insertable<TEntity, TInsertable>) {
