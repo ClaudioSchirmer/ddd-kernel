@@ -205,12 +205,47 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         entityState = this.writeAsString()
     }
 
-    protected open suspend fun buildCommonRules(actionName: String, service: TService?) {}
-    protected open suspend fun buildInsertableOrUpdatableRules(actionName: String, service: TService?) {}
-    protected open suspend fun buildInsertableRules(actionName: String, service: TService?) {}
-    protected open suspend fun buildUpdatableRules(actionName: String, service: TService?) {}
-    protected open suspend fun buildDeletableRules(actionName: String, service: TService?) {}
-    protected open suspend fun beforeCreateValidEntity(actionName: String, service: TService?) {}
+    abstract protected suspend fun getRules(actionName: String, service: TService?): Rules
+    protected suspend fun buildRules(rules: suspend Rules.() -> Unit): Rules = Rules().apply { rules() }
+
+    protected class Rules {
+        private var insertRules: suspend () -> Unit = {}
+        private var updateRules: suspend () -> Unit = {}
+        private var insertOrUpdateRules: suspend () -> Unit = {}
+        private var deleteRules: suspend () -> Unit = {}
+
+        companion object {
+            fun Rules.ifInsert(rules: suspend () -> Unit) {
+                insertRules = rules
+            }
+
+            fun Rules.ifUpdate(rules: suspend () -> Unit) {
+                updateRules = rules
+            }
+
+            fun Rules.ifDelete(rules: suspend () -> Unit) {
+                deleteRules = rules
+            }
+
+            fun Rules.ifInsertOrUpdate(rules: suspend () -> Unit) {
+                insertOrUpdateRules = rules
+            }
+        }
+
+        suspend fun executeBeforeInsert() {
+            insertOrUpdateRules()
+            insertRules()
+        }
+
+        suspend fun executeBeforeUpdate() {
+            insertOrUpdateRules()
+            updateRules()
+        }
+
+        suspend fun executeBeforeDelete() {
+            deleteRules()
+        }
+    }
 
     protected inline fun <reified Entity : TEntity> getLastSavedState(addNotificationIfNull: Boolean = true): Entity? {
         val addNotificatonAndReturnNull = { isError: Boolean ->
@@ -252,8 +287,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private fun getDateTime() = ZonedDateTime.now(ZoneId.of("UTC"))
     private suspend fun validateToInsert(actionName: String) {
         entityMode = EntityMode.INSERT
-        buildCommonRules(actionName, this.service)
         checkService()
+        getRules(actionName, this.service).executeBeforeInsert()
         if (!insertable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -274,17 +309,14 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                 )
             )
         }
-        buildInsertableOrUpdatableRules(actionName, this.service)
-        buildInsertableRules(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
-        beforeCreateValidEntity(actionName, this.service)
     }
 
     private suspend fun validateToUpdate(actionName: String) {
         entityMode = EntityMode.UPDATE
-        buildCommonRules(actionName, this.service)
         checkService()
+        getRules(actionName, this.service).executeBeforeUpdate()
         if (!updatable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -303,17 +335,14 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                     notification = UnableToUpdateWithoutIDNotification()
                 )
             )
-        buildInsertableOrUpdatableRules(actionName, this.service)
-        buildUpdatableRules(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
-        beforeCreateValidEntity(actionName, this.service)
     }
 
     private suspend fun validateToDelete(actionName: String) {
         entityMode = EntityMode.DELETE
-        buildCommonRules(actionName, this.service)
         checkService()
+        getRules(actionName, this.service).executeBeforeDelete()
         if (!deletable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -332,10 +361,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
                     notification = UnableToDeleteWithoutIDNotification()
                 )
             )
-        buildDeletableRules(actionName, this.service)
         runValidateValueObjects()
         runValidateAggregateEntityValueObjects()
-        beforeCreateValidEntity(actionName, this.service)
     }
 
     private fun changeFieldNames() {
