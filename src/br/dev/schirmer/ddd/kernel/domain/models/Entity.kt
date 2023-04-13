@@ -68,17 +68,19 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     fun addFieldNamesToChange(fieldNamesToChange: Map<String, String>) =
         this.fieldNamesToChange.putAll(fieldNamesToChange)
 
-    fun checkSignature(signature: UUID) {
-        if (signature != this.signature) {
-            addNotificationMessage(
-                NotificationMessage(
-                    fieldName = "signature",
-                    fieldValue = signature.toString(),
-                    funName = ::checkSignature.name,
-                    notification = InvalidDomainSignatureNotification()
+    inner class SignatureChecker {
+        fun invoke(signature: UUID) {
+            if (signature != this@Entity.signature) {
+                addNotificationMessage(
+                    NotificationMessage(
+                        fieldName = "signature",
+                        fieldValue = signature.toString(),
+                        funName = this::invoke.name,
+                        notification = InvalidDomainSignatureNotification()
+                    )
                 )
-            )
-            checkNotifications()
+                checkNotifications()
+            }
         }
     }
 
@@ -127,7 +129,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         checkNotifications()
         return SealedValidEntity.Insertable(
             signature!!,
-            this as TEntity,
+            SignatureChecker(),
             this::class.simpleName!!,
             actionName,
             id,
@@ -147,7 +149,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         checkNotifications()
         return SealedValidEntity.Updatable(
             signature!!,
-            this as TEntity,
+            SignatureChecker(),
             this::class.simpleName!!,
             actionName,
             id!!,
@@ -167,7 +169,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         checkNotifications()
         return SealedValidEntity.Deletable<TEntity>(
             signature!!,
-            this as TEntity,
+            SignatureChecker(),
             this::class.simpleName!!,
             actionName,
             id!!,
@@ -205,8 +207,8 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         entityState = this.writeAsString()
     }
 
-    abstract protected suspend fun getRules(actionName: String, service: TService?): Rules
-    protected suspend fun buildRules(rules: suspend Rules.() -> Unit): Rules = Rules().apply { rules() }
+    abstract protected suspend fun buildRules(actionName: String, service: TService?): Rules
+    protected suspend fun rulesBuilder(rules: suspend Rules.() -> Unit): Rules = Rules().apply { rules() }
 
     protected class Rules {
         private var insertRules: suspend () -> Unit = {}
@@ -288,7 +290,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private suspend fun validateToInsert(actionName: String) {
         entityMode = EntityMode.INSERT
         checkService()
-        getRules(actionName, this.service).executeBeforeInsert()
+        buildRules(actionName, this.service).executeBeforeInsert()
         if (!insertable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -316,7 +318,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private suspend fun validateToUpdate(actionName: String) {
         entityMode = EntityMode.UPDATE
         checkService()
-        getRules(actionName, this.service).executeBeforeUpdate()
+        buildRules(actionName, this.service).executeBeforeUpdate()
         if (!updatable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -342,7 +344,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private suspend fun validateToDelete(actionName: String) {
         entityMode = EntityMode.DELETE
         checkService()
-        getRules(actionName, this.service).executeBeforeDelete()
+        buildRules(actionName, this.service).executeBeforeDelete()
         if (!deletable) {
             addNotificationMessage(
                 NotificationMessage(
