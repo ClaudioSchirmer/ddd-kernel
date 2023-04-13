@@ -9,8 +9,8 @@ import java.util.*
 
 sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
     class Insertable<TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>>(
-        entitySignature: UUID,
-        entity: TEntity,
+        signature: UUID,
+        signatureChecker: Entity<TEntity, *, TInsertable, *>.SignatureChecker,
         val entityName: String,
         @JsonIgnore
         val actionName: String,
@@ -21,13 +21,13 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
         val events: List<DomainEvent>
     ) : ValidEntity<TEntity> {
         init {
-            entity.checkSignature(entitySignature)
+            signatureChecker.invoke(signature)
         }
     }
 
     class Updatable<TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>>(
-        entitySignature: UUID,
-        entity: TEntity,
+        signature: UUID,
+        signatureChecker: Entity<TEntity, *, *, TUpdatable>.SignatureChecker,
         val entityName: String,
         @JsonIgnore
         val actionName: String,
@@ -38,13 +38,13 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
         val events: List<DomainEvent>
     ) : ValidEntity<TEntity> {
         init {
-            entity.checkSignature(entitySignature)
+            signatureChecker.invoke(signature)
         }
     }
 
     class Deletable<TEntity : Entity<TEntity, *, *, *>>(
-        entitySignature: UUID,
-        entity: TEntity,
+        signature: UUID,
+        signatureChecker: Entity<TEntity, *, *, * >.SignatureChecker,
         val entityName: String,
         @JsonIgnore
         val actionName: String,
@@ -56,7 +56,7 @@ sealed interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> {
         val events: List<DomainEvent>
     ) : ValidEntity<TEntity> {
         init {
-            entity.checkSignature(entitySignature)
+            signatureChecker.invoke(signature)
         }
     }
 }
