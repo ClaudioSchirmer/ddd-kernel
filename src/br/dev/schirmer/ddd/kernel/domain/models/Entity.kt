@@ -39,6 +39,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private val events: MutableList<DomainEvent> = mutableListOf()
     private val notificationContextCollection: MutableList<NotificationContext> = mutableListOf()
     private val fieldNamesToChange: MutableMap<String, String> = mutableMapOf()
+    private val signatureChecker: SignatureChecker = SignatureChecker()
     protected var entityState: String? = null
         private set
 
@@ -129,7 +130,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         checkNotifications()
         return SealedValidEntity.Insertable(
             signature!!,
-            SignatureChecker(),
+            signatureChecker,
             this::class.simpleName!!,
             actionName,
             id,
@@ -149,7 +150,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         checkNotifications()
         return SealedValidEntity.Updatable(
             signature!!,
-            SignatureChecker(),
+            signatureChecker,
             this::class.simpleName!!,
             actionName,
             id!!,
@@ -169,7 +170,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         checkNotifications()
         return SealedValidEntity.Deletable<TEntity>(
             signature!!,
-            SignatureChecker(),
+            signatureChecker,
             this::class.simpleName!!,
             actionName,
             id!!,
