@@ -41,7 +41,7 @@ java {
 }
 
 group = "br.dev.schirmer"
-version = "12.0.0"
+version = "12.1.0"
 
 sourceSets.main {
 	java {
