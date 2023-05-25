@@ -7,7 +7,9 @@ enum class EventType(override val value: String) : EnumValueObject<String> {
     UNKNOWN("UNKNOWN"),
     LOG("LOG"),
     AUDIT("AUDIT"),
-    DEBUG("DEBUG");
+    DEBUG("DEBUG"),
+    ERROR("ERROR"),
+    WARNING("WARNING");
 
     override val unknownEnumNotification: Notification by lazy { InvalidEventTypeNotification() }
 }

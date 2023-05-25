@@ -8,11 +8,10 @@ import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateValueObject
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.ValueObject
-import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import java.text.SimpleDateFormat
+import br.dev.schirmer.utils.kotlin.json.AlphabeticalSerialization
+import br.dev.schirmer.utils.kotlin.json.FilteredSerialization
+import br.dev.schirmer.utils.kotlin.json.JsonUtils.toClass
+import br.dev.schirmer.utils.kotlin.json.JsonUtils.toJson
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
@@ -24,7 +23,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         TService : Service<TEntity>,
         TInsertable : SealedValidEntity<TEntity>,
         TUpdatable : SealedValidEntity<TEntity>>
-    : SealedValidEntity<TEntity> {
+    : SealedValidEntity<TEntity>, FilteredSerialization, AlphabeticalSerialization {
 
     private var signature: UUID? = null
     private var insertable: Boolean = false
@@ -43,7 +42,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected var entityState: String? = null
         private set
 
-    @JsonIgnore
     var id: Id? = null
         protected set
     protected val notificationContext = NotificationContext(this::class.simpleName.toString())
@@ -174,7 +172,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             this::class.simpleName!!,
             actionName,
             id!!,
-            this.writeAsString(),
+            this.toJson(excludeFields = setOf("id")),
             getDateTime(),
             events
         )
@@ -205,7 +203,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected fun registerEvent(domainEvent: DomainEvent) = events.add(domainEvent)
 
     protected fun saveState() {
-        entityState = this.writeAsString()
+        entityState = this.toJson()
     }
 
     abstract protected suspend fun buildRules(actionName: String, service: TService?): Rules
@@ -263,11 +261,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         }
         return if (entityState != null) {
             runCatching {
-                jacksonObjectMapper().apply {
-                    registerKotlinModule()
-                    registerModule(JavaTimeModule())
-                    setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
-                }.readValue(entityState, Entity::class.java)
+                entityState!!.toClass<Entity>()
             }.getOrElse {
                 addNotificatonAndReturnNull(true)
             }
@@ -404,12 +398,6 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             it.second.isValid(getService(), entityMode, it.first, notificationContext)
         }
     }
-
-    private fun Any.writeAsString(): String = jacksonObjectMapper().apply {
-        registerKotlinModule()
-        registerModule(JavaTimeModule())
-        setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
-    }.writeValueAsString(this)
 
     private fun startEntity() {
         events.clear()

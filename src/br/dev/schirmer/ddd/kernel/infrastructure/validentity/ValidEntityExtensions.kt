@@ -1,28 +1,39 @@
 package br.dev.schirmer.ddd.kernel.infrastructure.validentity
 
 
+import br.dev.schirmer.ddd.kernel.domain.events.EventType
 import br.dev.schirmer.ddd.kernel.domain.models.Context
 import br.dev.schirmer.ddd.kernel.domain.models.Entity
 import br.dev.schirmer.ddd.kernel.domain.models.ValidEntity
 import br.dev.schirmer.ddd.kernel.infrastructure.events.publish
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import br.dev.schirmer.ddd.kernel.infrastructure.log.Data
+import br.dev.schirmer.ddd.kernel.infrastructure.log.Export
+import br.dev.schirmer.ddd.kernel.infrastructure.log.Header
+import br.dev.schirmer.utils.kotlin.json.JsonUtils.toClass
+import br.dev.schirmer.utils.kotlin.json.JsonUtils.toJson
 import org.slf4j.LoggerFactory
-import java.text.SimpleDateFormat
+
 
 inline fun <reified TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>> ValidEntity.Insertable<TEntity, TInsertable>.publish(
     context: Context
 ) {
-    jacksonObjectMapper().apply {
-        registerKotlinModule()
-        registerModule(JavaTimeModule())
-        setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
-    }.writeValueAsString(this).let { text ->
-        with(LoggerFactory.getLogger(this::class.java)) {
-            debug("{\"threadId\":\"${context.id}\",\"EventType\":\"AUDIT\",\"Action\":\"INSERT\",\"ActionName\":\"${this@publish.actionName}\",\"data\":$text}")
-
-        }
+    with(LoggerFactory.getLogger("Kernel.Audit")) {
+        info(
+            Export(
+                header = Header(
+                    threadId = context.id,
+                    action = "Insert",
+                    className = this@publish.entityName,
+                    actionName = this@publish.actionName,
+                    eventType = EventType.AUDIT,
+                    dateTime = this@publish.dateTime
+                ),
+                data = Data(
+                    id = this@publish.id?.uuid,
+                    fields = this@publish.fieldsToInsert
+                )
+            ).toJson(excludeFields = setOf("id"))
+        )
     }
     this.events.publish(context)
 }
@@ -30,14 +41,23 @@ inline fun <reified TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : 
 inline fun <reified TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>> ValidEntity.Updatable<TEntity, TUpdatable>.publish(
     context: Context
 ) {
-    jacksonObjectMapper().apply {
-        registerKotlinModule()
-        registerModule(JavaTimeModule())
-        setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
-    }.writeValueAsString(this).let { text ->
-        with(LoggerFactory.getLogger(this::class.java)) {
-            debug("{\"threadId\":\"${context.id}\",\"EventType\":\"AUDIT\",\"Action\":\"UPDATE\",\"ActionName\":\"${this@publish.actionName}\",\"data\":$text}")
-        }
+    with(LoggerFactory.getLogger("Kernel.Audit")) {
+        info(
+            Export(
+                header = Header(
+                    threadId = context.id,
+                    action = "Update",
+                    className = this@publish.entityName,
+                    actionName = this@publish.actionName,
+                    eventType = EventType.AUDIT,
+                    dateTime = this@publish.dateTime
+                ),
+                data = Data(
+                    id = this@publish.id.uuid,
+                    fields = this@publish.fieldsToUpdate
+                )
+            ).toJson(excludeFields = setOf("id"))
+        )
     }
     this.events.publish(context)
 }
@@ -45,14 +65,23 @@ inline fun <reified TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : Va
 inline fun <reified TEntity : Entity<TEntity, *, *, *>> ValidEntity.Deletable<TEntity>.publish(
     context: Context
 ) {
-    jacksonObjectMapper().apply {
-        registerKotlinModule()
-        registerModule(JavaTimeModule())
-        setDateFormat(SimpleDateFormat("yyyy-MM-dd HH:mm a z"))
-    }.writeValueAsString(this).let { text ->
-        with(LoggerFactory.getLogger(this::class.java)) {
-            debug("{\"threadId\":\"${context.id}\",\"EventType\":\"AUDIT\",\"Action\":\"DELETE\",\"ActionName\":\"${this@publish.actionName}\",\"data\":$text}")
-        }
+    with(LoggerFactory.getLogger("Kernel.Audit")) {
+        info(
+            Export(
+                header = Header(
+                    threadId = context.id,
+                    action = "Delete",
+                    className = this@publish.entityName,
+                    actionName = this@publish.actionName,
+                    eventType = EventType.AUDIT,
+                    dateTime = this@publish.dateTime
+                ),
+                data = Data(
+                    id = this@publish.id.uuid,
+                    fields = this@publish.deletedFields.toClass()
+                )
+            ).toJson(excludeFields = setOf("id"))
+        )
     }
     this.events.publish(context)
 }
