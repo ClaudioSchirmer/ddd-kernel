@@ -7,7 +7,7 @@ val kotlinVersion: String by project
 val kotlinCoroutines: String by project
 val logbackVersion: String by project
 val kodeinVersion: String by project
-val jacksonKotlinModule: String by project
+val utilsKotlin: String by project
 
 
 plugins {
@@ -41,7 +41,7 @@ java {
 }
 
 group = "br.dev.schirmer"
-version = "12.1.0"
+version = "12.2.0"
 
 sourceSets.main {
 	java {
@@ -69,6 +69,9 @@ repositories {
 }
 
 dependencies {
+	//kotlin-utils
+	implementation("br.dev.schirmer:utils-kotlin:$utilsKotlin")
+
 	//Coroutines
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutines")
 
@@ -81,9 +84,6 @@ dependencies {
 	//Tests
 	testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
 
-	/*JacksonKotlinModule*/
-	implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonKotlinModule")
-	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonKotlinModule")
 }
 
 tasks.publish {
