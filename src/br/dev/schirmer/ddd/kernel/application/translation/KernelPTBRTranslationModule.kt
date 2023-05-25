@@ -41,6 +41,9 @@ object KernelPTBRTranslationModule : TranslateModule {
         "EventType.LOG" to "Log",
         "EventType.AUDIT" to "Auditoria",
         "EventType.DEBUG" to "Debug",
+        "EventType.ERROR" to "Error",
+        "EventType.WARNING" to "Warning",
+
 
         /* Kernel.application */
         "InvalidLanguageDomainNotification" to "Idioma não é válido.",
