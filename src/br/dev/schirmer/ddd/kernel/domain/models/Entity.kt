@@ -8,10 +8,9 @@ import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateValueObject
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.ValueObject
-import br.dev.schirmer.utils.kotlin.json.AlphabeticalSerialization
-import br.dev.schirmer.utils.kotlin.json.FilteredSerialization
 import br.dev.schirmer.utils.kotlin.json.JsonUtils.toClass
 import br.dev.schirmer.utils.kotlin.json.JsonUtils.toJson
+import com.fasterxml.jackson.annotation.JsonIgnore
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
@@ -23,7 +22,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         TService : Service<TEntity>,
         TInsertable : SealedValidEntity<TEntity>,
         TUpdatable : SealedValidEntity<TEntity>>
-    : SealedValidEntity<TEntity>, FilteredSerialization, AlphabeticalSerialization {
+    : SealedValidEntity<TEntity> {
 
     private var signature: UUID? = null
     private var insertable: Boolean = false
@@ -42,6 +41,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected var entityState: String? = null
         private set
 
+    @JsonIgnore
     var id: Id? = null
         protected set
     protected val notificationContext = NotificationContext(this::class.simpleName.toString())
@@ -172,7 +172,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
             this::class.simpleName!!,
             actionName,
             id!!,
-            this.toJson(excludeFields = setOf("id")),
+            this.toJson(),
             getDateTime(),
             events
         )

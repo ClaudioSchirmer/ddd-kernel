@@ -13,11 +13,12 @@ import br.dev.schirmer.utils.kotlin.json.JsonUtils.toClass
 import br.dev.schirmer.utils.kotlin.json.JsonUtils.toJson
 import org.slf4j.LoggerFactory
 
+const val logAuditName = "br.dev.schirmer.ddd.kernel.infrastructure.validentity.audit"
 
 inline fun <reified TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : ValidEntity<TEntity>> ValidEntity.Insertable<TEntity, TInsertable>.publish(
     context: Context
 ) {
-    with(LoggerFactory.getLogger("Kernel.Audit")) {
+    with(LoggerFactory.getLogger(logAuditName)) {
         info(
             Export(
                 header = Header(
@@ -32,7 +33,7 @@ inline fun <reified TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : 
                     id = this@publish.id?.uuid,
                     fields = this@publish.fieldsToInsert
                 )
-            ).toJson(excludeFields = setOf("id"))
+            ).toJson()
         )
     }
     this.events.publish(context)
@@ -41,7 +42,7 @@ inline fun <reified TEntity : Entity<TEntity, *, TInsertable, *>, TInsertable : 
 inline fun <reified TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : ValidEntity<TEntity>> ValidEntity.Updatable<TEntity, TUpdatable>.publish(
     context: Context
 ) {
-    with(LoggerFactory.getLogger("Kernel.Audit")) {
+    with(LoggerFactory.getLogger(logAuditName)) {
         info(
             Export(
                 header = Header(
@@ -56,7 +57,7 @@ inline fun <reified TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : Va
                     id = this@publish.id.uuid,
                     fields = this@publish.fieldsToUpdate
                 )
-            ).toJson(excludeFields = setOf("id"))
+            ).toJson()
         )
     }
     this.events.publish(context)
@@ -65,7 +66,7 @@ inline fun <reified TEntity : Entity<TEntity, *, *, TUpdatable>, TUpdatable : Va
 inline fun <reified TEntity : Entity<TEntity, *, *, *>> ValidEntity.Deletable<TEntity>.publish(
     context: Context
 ) {
-    with(LoggerFactory.getLogger("Kernel.Audit")) {
+    with(LoggerFactory.getLogger(logAuditName)) {
         info(
             Export(
                 header = Header(
@@ -80,7 +81,7 @@ inline fun <reified TEntity : Entity<TEntity, *, *, *>> ValidEntity.Deletable<TE
                     id = this@publish.id.uuid,
                     fields = this@publish.deletedFields.toClass()
                 )
-            ).toJson(excludeFields = setOf("id"))
+            ).toJson()
         )
     }
     this.events.publish(context)

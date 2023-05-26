@@ -1,7 +1,6 @@
 package br.dev.schirmer.ddd.kernel.infrastructure.log
 
 import br.dev.schirmer.ddd.kernel.domain.events.EventType
-import br.dev.schirmer.utils.kotlin.json.AlphabeticalSerialization
 import java.time.ZonedDateTime
 import java.util.*
 
@@ -12,4 +11,4 @@ data class Header(
     val actionName: String?,
     val eventType: EventType?,
     val dateTime: ZonedDateTime
-) : AlphabeticalSerialization
+)

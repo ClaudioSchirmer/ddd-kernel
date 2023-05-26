@@ -10,6 +10,8 @@ import br.dev.schirmer.utils.kotlin.json.JsonUtils.toJson
 import org.slf4j.LoggerFactory
 import java.time.ZonedDateTime
 
+const val logPrefixName = "br.dev.schirmer.ddd.kernel.infrastructure.events"
+
 fun List<Event>.publish(context: Context) = forEach { it.publish(context) }
 
 fun Event.publish(context: Context) {
@@ -31,15 +33,15 @@ fun Event.publish(context: Context) {
     ).toJson()
 
     val eventType = when (this@publish.eventType) {
-        EventType.AUDIT -> "Audit"
-        EventType.DEBUG -> "Debug"
-        EventType.LOG -> "Log"
-        EventType.ERROR -> "Error"
-        EventType.WARNING -> "Warning"
-        else -> "Desconhecido"
+        EventType.AUDIT -> "audit"
+        EventType.DEBUG -> "debug"
+        EventType.LOG -> "log"
+        EventType.ERROR -> "error"
+        EventType.WARNING -> "warning"
+        else -> "unknown"
     }
 
-    with(LoggerFactory.getLogger("Kernel.$eventType")) {
+    with(LoggerFactory.getLogger("$logPrefixName.$eventType")) {
         when (this@publish.eventType) {
             EventType.AUDIT -> info(json)
             EventType.DEBUG -> debug(json)
