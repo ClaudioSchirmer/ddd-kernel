@@ -12,13 +12,13 @@ val utilsKotlin: String by project
 
 plugins {
 	application
-	kotlin("jvm") version "1.7.10"
+	kotlin("jvm") version "1.9.22"
 	java
 	`maven-publish`
 }
 
 val compileOptions: (KotlinJvmOptions.() -> Unit) = {
-	jvmTarget = "11"
+	jvmTarget = "17"
 	allWarningsAsErrors = true
 }
 
@@ -35,13 +35,13 @@ tasks.compileTestKotlin {
 }
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_11
-	targetCompatibility = JavaVersion.VERSION_11
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
 	withSourcesJar()
 }
 
 group = "br.dev.schirmer"
-version = "12.3.0"
+version = "13.0.0"
 
 sourceSets.main {
 	java {

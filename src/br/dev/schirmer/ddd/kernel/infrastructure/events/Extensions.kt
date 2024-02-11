@@ -6,7 +6,7 @@ import br.dev.schirmer.ddd.kernel.domain.models.Context
 import br.dev.schirmer.ddd.kernel.infrastructure.log.Export
 import br.dev.schirmer.ddd.kernel.infrastructure.log.Header
 import br.dev.schirmer.ddd.kernel.infrastructure.log.Log
-import br.dev.schirmer.utils.kotlin.json.JsonUtils.toJson
+import br.dev.schirmer.utils.kotlin.json.toJson
 import org.slf4j.LoggerFactory
 import java.time.ZonedDateTime
 

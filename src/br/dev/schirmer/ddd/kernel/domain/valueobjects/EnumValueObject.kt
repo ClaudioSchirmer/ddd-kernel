@@ -1,6 +1,6 @@
 package br.dev.schirmer.ddd.kernel.domain.valueobjects
 
-import br.dev.schirmer.ddd.kernel.application.translation.getTranslatedMessage
+import br.dev.schirmer.ddd.kernel.application.translation.string.getTranslatedMessage
 import br.dev.schirmer.ddd.kernel.domain.notifications.Notification
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage

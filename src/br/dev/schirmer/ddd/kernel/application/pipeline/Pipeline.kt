@@ -2,7 +2,7 @@ package br.dev.schirmer.ddd.kernel.application.pipeline
 
 import br.dev.schirmer.ddd.kernel.application.configuration.AppContext
 import br.dev.schirmer.ddd.kernel.application.exception.ApplicationNotificationContextException
-import br.dev.schirmer.ddd.kernel.application.translation.toNotificationContextDTO
+import br.dev.schirmer.ddd.kernel.application.translation.notificationcontext.toNotificationContextDTO
 import br.dev.schirmer.ddd.kernel.domain.exception.DomainNotificationContextException
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage

@@ -1,4 +1,4 @@
-package br.dev.schirmer.ddd.kernel.domain.extensions
+package br.dev.schirmer.ddd.kernel.domain.valueobjects.enum
 
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.EnumValueObject
 

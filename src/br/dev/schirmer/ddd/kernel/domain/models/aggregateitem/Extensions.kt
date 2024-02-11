@@ -1,5 +1,7 @@
-package br.dev.schirmer.ddd.kernel.domain.models
+package br.dev.schirmer.ddd.kernel.domain.models.aggregateitem
 
+import br.dev.schirmer.ddd.kernel.domain.models.AggregateItem
+import br.dev.schirmer.ddd.kernel.domain.models.Entity
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateItemStatus
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateValueObject
 

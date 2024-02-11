@@ -1,6 +1,7 @@
-package br.dev.schirmer.ddd.kernel.application.pipeline
+package br.dev.schirmer.ddd.kernel.application.pipeline.result
 
 import br.dev.schirmer.ddd.kernel.application.notifications.NotificationContextDTO
+import br.dev.schirmer.ddd.kernel.application.pipeline.Result
 
 /* ResultOptions Configuration */
 fun <TResult, TReturn> Result.Actions<TResult, TReturn>.ifSuccess(action: TResult.() -> TReturn) = apply {
