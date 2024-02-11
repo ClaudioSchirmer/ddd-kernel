@@ -8,8 +8,8 @@ import br.dev.schirmer.ddd.kernel.domain.valueobjects.AggregateValueObject
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.ValueObject
-import br.dev.schirmer.utils.kotlin.json.toClass
-import br.dev.schirmer.utils.kotlin.json.toJson
+import br.dev.schirmer.utils.kotlin.json.clazz.toJson
+import br.dev.schirmer.utils.kotlin.json.string.toClass
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.time.ZoneId
 import java.time.ZonedDateTime

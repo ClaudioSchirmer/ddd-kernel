@@ -9,8 +9,8 @@ import br.dev.schirmer.ddd.kernel.infrastructure.events.publish
 import br.dev.schirmer.ddd.kernel.infrastructure.log.Data
 import br.dev.schirmer.ddd.kernel.infrastructure.log.Export
 import br.dev.schirmer.ddd.kernel.infrastructure.log.Header
-import br.dev.schirmer.utils.kotlin.json.toClass
-import br.dev.schirmer.utils.kotlin.json.toJson
+import br.dev.schirmer.utils.kotlin.json.string.toClass
+import br.dev.schirmer.utils.kotlin.json.clazz.toJson
 import org.slf4j.LoggerFactory
 
 const val logAuditName = "br.dev.schirmer.ddd.kernel.infrastructure.validentity.audit"
