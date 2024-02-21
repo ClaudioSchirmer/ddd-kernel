@@ -53,6 +53,7 @@ class DomainNotificationContextException(val notificationContext: List<Notificat
 #### Protected properties
 ```kotlin
     entityState: String?
+
     notificationContext: NotificationContext
 ```
 
