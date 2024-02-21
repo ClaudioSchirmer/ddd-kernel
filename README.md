@@ -9,14 +9,14 @@ ddd-kernel is a Kotlin library for fast Domain-Driven Design development
 
 ---
 
-#### : Activatable
-#### : Context
-#### : DomainNotification
-#### : ValueObject
-#### : EnumValueObject
-#### : AggregateValueObject
-#### : Service
-#### : ValidEntity
+#### Activatable
+#### Context
+#### DomainNotification
+#### ValueObject
+#### EnumValueObject
+#### AggregateValueObject
+#### Service
+#### ValidEntity
 
 ### Classes
 
@@ -41,7 +41,7 @@ class DomainNotificationContextException(val notificationContext: List<Notificat
 
 ---
 
-### : Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>()
+### Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>
 
 #### Annotations
 ```kotlin
@@ -104,7 +104,7 @@ class DomainNotificationContextException(val notificationContext: List<Notificat
     checkNotifications()
 ```
 
-#### Protected Open Methods
+#### Protected open Methods
 ```kotlin
     getValidEntityInsertable(): TInsertable
 
