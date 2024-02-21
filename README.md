@@ -6,9 +6,6 @@ ddd-kernel is a Kotlin library for fast Domain-Driven Design development
 
 # *Domain*
 ## Interfaces
-
----
-
  
 #### Activatable
 #### Context
@@ -18,8 +15,6 @@ ddd-kernel is a Kotlin library for fast Domain-Driven Design development
 #### Service < TEntity : Entity >
 
 ## Classes
-
----
 
 ### DomainEvent
 ```kotlin    
@@ -83,8 +78,6 @@ enum class EntityMode(override val value: Int) {
 ```
 
 ## Abstract Classes
-
----
 
 ### ScalarValueObject<TObject: Any> : ValueObject
 #### Properties
@@ -266,8 +259,6 @@ publish(deletable: ValidEntity.Deletable<TEntity>)
 
 ## Extensions
 
----
-
 ### from AggregateItem
 
 #### Items
@@ -315,8 +306,6 @@ getByValue<TEnum>(value: String) : TEnum
 # *Application*
 ## Open Classes
 
----
-
 ### AppContext
 ```kotlin    
 open class AppContext(
@@ -325,8 +314,6 @@ open class AppContext(
 ```
 
 ## Objects
-
----
 
 ### Application
 ```kotlin    
