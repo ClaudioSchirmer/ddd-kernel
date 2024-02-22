@@ -207,45 +207,30 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     }
 
     abstract protected suspend fun buildRules(actionName: String, service: TService?): Rules
-    protected suspend fun rulesBuilder(rules: suspend Rules.() -> Unit): Rules = Rules().apply { rules() }
 
-    protected class Rules {
-        private var insertRules: suspend () -> Unit = {}
-        private var updateRules: suspend () -> Unit = {}
-        private var insertOrUpdateRules: suspend () -> Unit = {}
-        private var deleteRules: suspend () -> Unit = {}
+    fun interface Rules {
+        suspend fun Rules.build()
+        suspend fun check() { build() }
+    }
 
-        companion object {
-            fun Rules.ifInsert(rules: suspend () -> Unit) {
-                insertRules = rules
-            }
+    suspend fun Rules.ifInsert(rules: suspend () -> Unit) {
+        if (entityMode == EntityMode.INSERT)
+            rules()
+    }
 
-            fun Rules.ifUpdate(rules: suspend () -> Unit) {
-                updateRules = rules
-            }
+    suspend fun Rules.ifUpdate(rules: suspend () -> Unit) {
+        if (entityMode == EntityMode.UPDATE)
+            rules()
+    }
 
-            fun Rules.ifDelete(rules: suspend () -> Unit) {
-                deleteRules = rules
-            }
+    suspend fun Rules.ifDelete(rules: suspend () -> Unit) {
+        if (entityMode == EntityMode.DELETE)
+            rules()
+    }
 
-            fun Rules.ifInsertOrUpdate(rules: suspend () -> Unit) {
-                insertOrUpdateRules = rules
-            }
-        }
-
-        suspend fun executeBeforeInsert() {
-            insertOrUpdateRules()
-            insertRules()
-        }
-
-        suspend fun executeBeforeUpdate() {
-            insertOrUpdateRules()
-            updateRules()
-        }
-
-        suspend fun executeBeforeDelete() {
-            deleteRules()
-        }
+    suspend fun Rules.ifInsertOrUpdate(rules: suspend () -> Unit) {
+        if (entityMode == EntityMode.INSERT || entityMode == EntityMode.UPDATE)
+            rules()
     }
 
     protected inline fun <reified Entity : TEntity> getLastSavedState(addNotificationIfNull: Boolean = true): Entity? {
@@ -285,7 +270,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private suspend fun validateToInsert(actionName: String) {
         entityMode = EntityMode.INSERT
         checkService()
-        buildRules(actionName, this.service).executeBeforeInsert()
+        buildRules(actionName, this.service).check()
         if (!insertable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -313,7 +298,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private suspend fun validateToUpdate(actionName: String) {
         entityMode = EntityMode.UPDATE
         checkService()
-        buildRules(actionName, this.service).executeBeforeUpdate()
+        buildRules(actionName, this.service).check()
         if (!updatable) {
             addNotificationMessage(
                 NotificationMessage(
@@ -339,7 +324,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private suspend fun validateToDelete(actionName: String) {
         entityMode = EntityMode.DELETE
         checkService()
-        buildRules(actionName, this.service).executeBeforeDelete()
+        buildRules(actionName, this.service).check()
         if (!deletable) {
             addNotificationMessage(
                 NotificationMessage(

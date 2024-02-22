@@ -99,6 +99,22 @@ clearNotifications()
 copy(nContext: String? = null) : NotificationContext
 ```
 
+### Id
+```kotlin
+data class Id(
+    var value: String
+)
+```
+
+#### Properties
+```kotlin
+uuid
+```
+#### Methods
+```kotlin
+isValid(fieldName: String?, notificationContext: NotificationContext?): Boolean
+```
+
 ### EntityMode
 ```kotlin
 enum class EntityMode(override val value: Int) {
@@ -159,10 +175,26 @@ id: Id?
 buildRules(actionName: String, service: TService?): Rules
 ```
 
+#### Rules builder
+```kotlin
+fun interface Rules {
+    suspend fun Rules.build()
+}
+```
+
+#### Entensions for Rules
+```kotlin
+Rules.ifInsert(rules: suspend () -> Unit)
+
+Rules.ifUpdate(rules: suspend () -> Unit)
+
+Rules.ifDelete(rules: suspend () -> Unit)
+
+Rules.ifInsertOrUpdate(rules: suspend () -> Unit)
+```
+
 #### Protected methods
 ```kotlin
-rulesBuilder(rules: suspend Rules.() -> Unit): Rules
-
 getInsertable(
     actionName: String,
     service: TService? = null

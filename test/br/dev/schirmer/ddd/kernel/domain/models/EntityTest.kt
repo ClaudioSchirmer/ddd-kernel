@@ -3,9 +3,6 @@ package br.dev.schirmer.ddd.kernel.domain.models
 import br.dev.schirmer.ddd.kernel.application.configuration.AppContext
 import br.dev.schirmer.ddd.kernel.domain.events.DomainEvent
 import br.dev.schirmer.ddd.kernel.domain.events.EventType
-import br.dev.schirmer.ddd.kernel.domain.models.Entity.Rules.Companion.ifDelete
-import br.dev.schirmer.ddd.kernel.domain.models.Entity.Rules.Companion.ifInsert
-import br.dev.schirmer.ddd.kernel.domain.models.Entity.Rules.Companion.ifUpdate
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.EntityMode
 import br.dev.schirmer.ddd.kernel.domain.valueobjects.Id
 import br.dev.schirmer.ddd.kernel.infrastructure.validentity.publish
@@ -19,7 +16,7 @@ class EntityTest {
     data class EntityForTest(
         val a: String = "A"
     ) : Entity<EntityForTest, Nothing, EntityForTest, EntityForTest>() {
-        override suspend fun buildRules(actionName: String, service: Nothing?): Rules = rulesBuilder {
+        override suspend fun buildRules(actionName: String, service: Nothing?): Rules = Rules {
             ifInsert {
                 DomainEvent(
                     eventType = EventType.WARNING,
@@ -30,9 +27,21 @@ class EntityTest {
             }
             ifUpdate {
                 id = Id(UUID.randomUUID())
+                DomainEvent(
+                    eventType = EventType.WARNING,
+                    className = this@EntityForTest::class.simpleName!!,
+                    message = "DomainEvent on Update",
+                    values = this@EntityForTest
+                ).register()
             }
             ifDelete {
                 id = Id(UUID.randomUUID())
+                DomainEvent(
+                    eventType = EventType.WARNING,
+                    className = this@EntityForTest::class.simpleName!!,
+                    message = "DomainEvent on Delete",
+                    values = this@EntityForTest
+                ).register()
             }
         }
     }

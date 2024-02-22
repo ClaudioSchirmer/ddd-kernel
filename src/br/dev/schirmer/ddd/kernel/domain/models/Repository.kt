@@ -10,14 +10,14 @@ abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>,
 ) {
 
     private val notificationContext = NotificationContext(this::class.simpleName.toString())
-    protected abstract suspend fun <T> workUnitHandler(workUnit: workUnit<T>): T
+    protected abstract suspend fun <T> workUnitHandler(workUnit: WorkUnit<T>): T
 
     suspend fun insert(
         insertable: ValidEntity.Insertable<TEntity, TInsertable>,
         beforeInsert: (suspend () -> Any)? = null,
         afterInsert: (suspend (Id) -> Unit)? = null
     ): Id {
-        val workUnit = workUnit {
+        val workUnit = WorkUnit {
             val resultBefore = beforeInsert?.invoke()
             val id = insert(insertable, resultBefore)
             afterInsert?.invoke(id)
@@ -32,7 +32,7 @@ abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>,
         beforeUpdate: (suspend () -> Any)? = null,
         afterUpdate: (suspend () -> Unit)? = null
     ) {
-        val workUnit = workUnit {
+        val workUnit = WorkUnit {
             val resultBefore = beforeUpdate?.invoke()
             update(updatable, resultBefore)
             afterUpdate?.invoke()
@@ -46,7 +46,7 @@ abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>,
         beforeDelete: (suspend () -> Any)? = null,
         afterDelete: (suspend () -> Unit)? = null
     ) {
-        val workUnit = workUnit {
+        val workUnit = WorkUnit {
             val resultBefore = beforeDelete?.invoke()
             delete(deletable, resultBefore)
             afterDelete?.invoke()
@@ -60,7 +60,7 @@ abstract class Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>,
         beforeFindById: (suspend () -> Any)? = null,
         afterFindById: (suspend () -> Unit)? = null
     ): TEntity? {
-        val workUnit = workUnit {
+        val workUnit = WorkUnit {
             val resultBefore = beforeFindById?.invoke()
             val entity = findById(id, resultBefore)
             afterFindById?.invoke()
