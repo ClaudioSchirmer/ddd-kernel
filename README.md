@@ -4,6 +4,39 @@ ddd-kernel is a Kotlin library for fast Domain-Driven Design development
 >Package: **br.dev.schirmer.ddd.kernel**<br/>
 >Developer: **Claudio Schirmer Guedes**
 
+## Configuration
+
+### Properties
+```kotlin
+language: (() -> Language)
+
+translationsFolder: String
+```
+### Methods
+```kotlin
+importTranslateModules(translateModules: List<TranslateModule>)
+
+importTranslateModule(translateModule: TranslateModule)
+```
+
+### Example
+```kotlin    
+dddKernel {
+    
+    language = {
+        if (condition) {
+            Language.PT_BR
+        } else {
+            Language.ENG
+        }
+    }
+    
+    translationsFolder = "myFolder"
+    
+    importTranslateModule(MyModule)
+}
+```
+
 # *Domain*
 ## Interfaces
  
@@ -24,9 +57,9 @@ class DomainEvent(
     message: String,
     values: Any? = null,
     exception: Throwable? = null
-) : Event(eventType, className, message, values, exception)
+) : Event
 ```
-### DomainException
+### DomainNotificationContextException
 ```kotlin    
 class DomainNotificationContextException(val notificationContext: List<NotificationContext>)
 ```
@@ -77,6 +110,17 @@ enum class EntityMode(override val value: Int) {
 }
 ```
 
+### EventType
+```kotlin
+enum class EventType(override val value: String){
+    UNKNOWN("UNKNOWN"),
+    LOG("LOG"),
+    AUDIT("AUDIT"),
+    DEBUG("DEBUG"),
+    ERROR("ERROR"),
+    WARNING("WARNING");
+}
+```
 ## Abstract Classes
 
 ### ScalarValueObject<TObject: Any> : ValueObject
@@ -210,7 +254,7 @@ clearAggregateItems<TAggregateEntityValueObject>()
 isAggregateItemValid(item: TAggregateEntityValueObject?): Boolean
 ```
 
-### Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity<TEntity>>
+### Repository<TEntity : Entity<TEntity, *, TInsertable, TUpdatable>, TInsertable : ValidEntity<TEntity>, TUpdatable : ValidEntity< TEntity >>
 
 #### Methods
 ```kotlin
@@ -304,8 +348,15 @@ getByValue<TEnum>(value: String) : TEnum
 ```
 
 # *Application*
-## Open Classes
 
+## Interfaces
+
+#### ApplicationNotification
+#### TranslateModule
+#### Command < TResult >
+#### Query < TResult >
+
+## Open Classes
 ### AppContext
 ```kotlin    
 open class AppContext(
@@ -313,12 +364,215 @@ open class AppContext(
 ) : Context
 ```
 
-## Objects
-
-### Application
+## Classes
+### Language
 ```kotlin    
-open class AppContext(
-    override val id: UUID
-) : Context
+enum class Language(override val value: Int) {
+    UNKNOWN(0),
+    PT_BR(1),
+    ENG(2),
+    ES(3),
+    FR(4);
+}
 ```
 
+### ApplicationEvent
+```kotlin    
+class ApplicationEvent(
+    eventType: EventType,
+    className: String,
+    message: String,
+    values: Any? = null,
+    exception: Throwable? = null
+) : Event
+```
+
+### ApplicationNotificationContextException
+```kotlin    
+class ApplicationNotificationContextException(val notificationContext: List<NotificationContext>)
+```
+### NotificationMessageDTO
+```kotlin    
+data class NotificationMessageDTO(
+val fieldName: String? = null,
+val fieldValue: String? = null,
+val funName: String? = null,
+val message: String
+)
+```
+
+### NotificationContextDTO
+```kotlin    
+data class NotificationContextDTO(
+    val context: String,
+    val notifications: List<NotificationMessageDTO>
+)
+```
+
+### Pipeline
+#### Constructor
+```kotlin
+Pipeline(val diAware: DIAware, var appContext: AppContext? = null)
+```
+
+#### Methods
+```kotlin
+dispatch(
+    query: TQuery,
+    appContext: AppContext? = null
+): Result<TResult>
+
+dispatch(
+    command: TCommand,
+    appContext: AppContext? = null
+): List<Result<TResult>>
+```
+
+## Abstract Classes
+### Handler<TResult, TRequest : Request< TResult >>
+#### Properties
+```kotlin    
+appContext: AppContext
+```
+
+#### Abstract methods
+```kotlin
+invoke(request: TRequest): TResult
+```
+## Extensions
+### from Result
+
+#### Success
+```kotlin    
+ifSuccess<TResult>(action: TResult.() -> Unit)
+```
+#### Failure
+```kotlin    
+ifFailure<TResult>(action: List<NotificationContextDTO>.() -> Unit)
+```
+#### Exception
+```kotlin    
+ifException<TResult>(action: Throwable.() -> Unit)
+```
+#### Get
+```kotlin    
+getFromResult<TResult, TReturn>(
+    noinline defaultActionOnFailure: (() -> TReturn)? = null,
+    actions: Result<TResult>.() -> TReturn
+) : TReturn
+```
+
+### from List< Result >
+#### with First
+```kotlin    
+withFirstResult<TResult>(
+    action: Result<TResult>.() -> Unit
+)
+
+getFromFirstResult(
+    noinline defaultActionOnFailure: (() -> TReturn)? = null,
+    action: Result<TResult>.() -> TReturn
+): TReturn
+
+withFirstIfSuccess<TResult>(
+    defaultActionOtherwise: (() -> Unit) = {},
+    action: TResult.() -> Unit
+)
+```
+
+#### with All
+```kotlin
+forEachResult<TResult>(action: Result<TResult>.() -> Unit)
+```
+
+### from List< NotificationContext >
+```kotlin
+toNotificationContextDTO() : List<NotificationContextDTO>
+```
+### from String
+```kotlin
+getTranslatedMessage(): String
+```
+# *Infrastructure*
+
+## Interfaces
+
+#### InfrastructureNotification
+
+## Classes
+### InfrastructureEvent
+```kotlin    
+class InfrastructureEvent(
+    eventType: EventType,
+    className: String,
+    message: String,
+    values: Any? = null,
+    exception: Throwable? = null
+) : Event
+```
+### InfrastructureNotificationException
+```kotlin    
+class InfrastructureNotificationException(val notificationContext: List<NotificationContext>)
+```
+## Extensions
+### from Event Or List < Event >
+
+#### publish
+```kotlin    
+publish(context: Context)
+```
+### from ValidEntity
+
+#### publish
+```kotlin    
+publish(context: Context)
+```
+
+# *Web*
+
+## Classes
+### ErrorMessage
+```kotlin    
+data class ErrorMessage(
+    val field: String?,
+    val value: String?,
+    val message: String,
+)
+```
+
+### Error
+```kotlin    
+data class Error(
+    val context: String,
+    val messages: List<ErrorMessage>
+)
+```
+
+
+### Response
+```kotlin    
+data class Response(
+    val status: Int,
+    val description: String,
+    val errors: List<Error>? = null
+)
+```
+
+## Extensions
+### from List< NotificationContextDTO >
+```kotlin
+toResponse(
+    httpStatus: Int = 400,
+    httpDescription: String = "Bad Request"
+) : Response
+```
+### from Throwable
+```kotlin
+toResponse(httpStatus: Int, httpDescription: String): Response
+
+toBadRequestResponse()
+
+toNotFoundResponse()
+
+toInternalServerErrorResponse()
+```

@@ -1,19 +1,19 @@
 package br.dev.schirmer.ddd.kernel.application.translation
 
-import br.dev.schirmer.ddd.kernel.application.configuration.Application
+import br.dev.schirmer.ddd.kernel.application.configuration.Configuration
 import br.dev.schirmer.ddd.kernel.application.configuration.Language
 import java.io.File
 
-object Translator {
+internal object Translator {
     private val translations: MutableMap<Language, MutableMap<String, String>> = mutableMapOf()
     private val modules: MutableList<TranslateModule> = mutableListOf()
 
     private val messages: Map<String, String>
         get() {
-            if (translations[Application.language()] == null) {
+            if (translations[Configuration.language()] == null) {
                 readTranslationsFromFile()
             }
-            return translations[Application.language()]?.toMap() ?: mapOf()
+            return translations[Configuration.language()]?.toMap() ?: mapOf()
         }
 
     fun importModule(translateModule: TranslateModule) {
@@ -25,15 +25,15 @@ object Translator {
     }
 
     fun getTranslationByKey(key: String): String = messages[key]
-        ?: modules.firstOrNull { it.language == Application.language() && it.translations[key] != null }?.translations?.get(
+        ?: modules.firstOrNull { it.language == Configuration.language() && it.translations[key] != null }?.translations?.get(
             key
         )
-        ?: throw TranslationNotFoundException("Translation: $key key to ${Application.language()} language.")
+        ?: throw TranslationNotFoundException("Translation: $key key to ${Configuration.language()} language.")
 
     private fun readTranslationsFromFile() {
-        val mapTranslations = translations.putIfAbsent(Application.language(), mutableMapOf())
-            ?: translations[Application.language()]!!
-        this::class.java.classLoader.getResource("${Application.translationsFolder}/${Application.language()}.properties")
+        val mapTranslations = translations.putIfAbsent(Configuration.language(), mutableMapOf())
+            ?: translations[Configuration.language()]!!
+        this::class.java.classLoader.getResource("${Configuration.translationsFolder}/${Configuration.language()}.properties")
             ?.toURI()?.path?.let { file ->
             File(file).useLines { lines ->
                 lines.forEach { line ->

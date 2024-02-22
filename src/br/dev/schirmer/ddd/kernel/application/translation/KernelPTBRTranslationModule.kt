@@ -2,7 +2,7 @@ package br.dev.schirmer.ddd.kernel.application.translation
 
 import br.dev.schirmer.ddd.kernel.application.configuration.Language
 
-object KernelPTBRTranslationModule : TranslateModule {
+internal object KernelPTBRTranslationModule : TranslateModule {
     override val language: Language = Language.PT_BR
     override val translations: Map<String, String> = mapOf(
         /* Kernel.domain */
