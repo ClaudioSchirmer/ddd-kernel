@@ -570,9 +570,9 @@ toResponse(
 ```kotlin
 toResponse(httpStatus: Int, httpDescription: String): Response
 
-toBadRequestResponse()
+toBadRequestResponse() : Response
 
-toNotFoundResponse()
+toNotFoundResponse() : Response
 
-toInternalServerErrorResponse()
+toInternalServerErrorResponse() : Response
 ```
