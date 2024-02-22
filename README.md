@@ -138,6 +138,7 @@ enum class EventType(override val value: String){
     WARNING("WARNING");
 }
 ```
+## Abstract Classes
 
 ### Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>
 
