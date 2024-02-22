@@ -6,9 +6,9 @@ import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationContext
 import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 
 
-interface EnumValueObject<TValue : Any> : ValueObject {
+interface EnumValueObject<TValue : Any> : ValueObject<TValue> {
 	val unknownEnumNotification: Notification
-	val value: TValue
+	override val value: TValue
 	val description get() = ("${this::class.simpleName.toString()}.$this").getTranslatedMessage()
 
 	override suspend fun isValid(fieldName: String?, notificationContext: NotificationContext?): Boolean =

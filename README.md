@@ -43,6 +43,7 @@ dddKernel {
 #### Activatable
 #### Context
 #### DomainNotification
+#### ValueObject < TValue :  Any >
 #### EnumValueObject < TValue :  Any >
 #### AggregateValueObject < TSuperEntity : Entity >
 #### Service < TEntity : Entity >
@@ -136,17 +137,6 @@ enum class EventType(override val value: String){
     ERROR("ERROR"),
     WARNING("WARNING");
 }
-```
-## Abstract Classes
-
-### ScalarValueObject<TObject: Any> : ValueObject
-#### Properties
-```kotlin
-value: TObject
-```
-#### Abstract method
-```kotlin
-isValid(fieldName: String? = null, notificationContext: NotificationContext? = null) : Boolean
 ```
 
 ### Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatable>

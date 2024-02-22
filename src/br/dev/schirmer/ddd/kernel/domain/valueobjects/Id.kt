@@ -6,14 +6,15 @@ import br.dev.schirmer.ddd.kernel.domain.notifications.NotificationMessage
 import com.fasterxml.jackson.annotation.JsonIgnore
 import java.util.*
 
-data class Id(
-	override var value: String
-) : ScalarValueObject<String>() {
+@JvmInline
+value class Id(
+	override val value: String
+) : ValueObject<String> {
 	constructor(uuid: UUID) : this(uuid.toString())
 
 	@get:JsonIgnore
-	val uuid: UUID by lazy {
-		try {
+	val uuid: UUID get() {
+		return try {
 			UUID.fromString(value)
 		} catch (e: Throwable) {
 			val notificationContext = NotificationContext(this::class.simpleName.toString()).apply {

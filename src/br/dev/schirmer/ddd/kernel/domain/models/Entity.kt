@@ -30,7 +30,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     private var deletable: Boolean = false
     private var serviceRequired: Boolean = false
     private var entityMode: EntityMode = EntityMode.DISPLAY
-    private var validateValueObjects: MutableList<Pair<String, ValueObject>> = mutableListOf()
+    private var validateValueObjects: MutableList<Pair<String, ValueObject<*>>> = mutableListOf()
     private var validateAggregateValueObjects: MutableList<Pair<String, AggregateValueObject<TEntity, TService>>> =
         mutableListOf()
     private var service: TService? = null
@@ -182,7 +182,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
     protected open suspend fun getValidEntityUpdatable(): TUpdatable = this as TUpdatable
     protected interface ValidEntity<TEntity : Entity<TEntity, *, *, *>> : SealedValidEntity<TEntity>
 
-    protected fun ValueObject.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
+    protected fun ValueObject<*>.addToValidate(name: String) = validateValueObjects.add(Pair(name, this))
     protected fun List<AggregateValueObject<TEntity, TService>>.addToValidate(name: String) =
         forEach { aggregateEntityValueObject ->
             validateAggregateValueObjects.add(Pair(name, aggregateEntityValueObject))
