@@ -4,7 +4,6 @@ val repositoryURL: String by project
 val repositoryUser: String by project
 val repositoryPassword: String by project
 val kotlinVersion: String by project
-val kotlinCoroutines: String by project
 val logbackVersion: String by project
 val kodeinVersion: String by project
 val utilsKotlin: String by project
@@ -72,7 +71,7 @@ dependencies {
 	implementation("br.dev.schirmer:utils-kotlin:$utilsKotlin")
 
 	//Coroutines
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutines")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinVersion")
 
 	//Log
 	implementation("ch.qos.logback:logback-classic:$logbackVersion")
