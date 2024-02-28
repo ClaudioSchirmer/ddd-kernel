@@ -7,6 +7,7 @@ val kotlinVersion: String by project
 val logbackVersion: String by project
 val kodeinVersion: String by project
 val utilsKotlin: String by project
+val kotlinCoroutines: String by project
 
 
 plugins {
@@ -71,7 +72,7 @@ dependencies {
 	implementation("br.dev.schirmer:utils-kotlin:$utilsKotlin")
 
 	//Coroutines
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinVersion")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutines")
 
 	//Log
 	implementation("ch.qos.logback:logback-classic:$logbackVersion")
