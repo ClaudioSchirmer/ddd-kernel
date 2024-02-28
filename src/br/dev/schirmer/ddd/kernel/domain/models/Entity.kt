@@ -206,7 +206,7 @@ abstract class Entity<TEntity : Entity<TEntity, TService, TInsertable, TUpdatabl
         entityState = this.toJson()
     }
 
-    abstract protected suspend fun buildRules(actionName: String, service: TService?): Rules
+    protected abstract suspend fun buildRules(actionName: String, service: TService?): Rules
 
     fun interface Rules {
         suspend fun Rules.build()
