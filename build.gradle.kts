@@ -55,6 +55,11 @@ sourceSets.test {
 	}
 }
 
+/* Avoid overloading the cloud file manager and time machine */
+allprojects {
+	layout.buildDirectory.set(File("${System.getProperty("user.home")}/GradleBuild/Libs/${rootProject.name}"))
+}
+
 repositories {
 	mavenCentral()
 
@@ -85,14 +90,10 @@ dependencies {
 
 }
 
-tasks.publish {
-	dependsOn("jar")
-}
-
 publishing {
 	publications {
 		register("mavenJava", MavenPublication::class) {
-			artifact("build/libs/${project.name}-$version.jar") {
+			artifact(tasks.jar) {
 				artifactId = project.name
 				extension = "jar"
 			}
