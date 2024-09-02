@@ -3,7 +3,8 @@ ddd-kernel is a Kotlin library for fast Domain-Driven Design development
 
 >Package: **br.dev.schirmer.ddd.kernel**<br/>
 >Developer: **Claudio Schirmer Guedes**<br/>
->Version: **14.0.0**
+>Version: **14.0.0**</br>
+> Website: **https://www.schirmer.dev.br/overview/ddd-with-kotlin**
 
 ## Configuration
 
